@@ -1,6 +1,7 @@
+
 import { useEffect, useState } from "react";
 import { Clock3, Heart, Gavel, UserRound } from "lucide-react";
-import Button from "../../../components/Button.jsx";
+import { Link } from "react-router-dom";
 import {
   formatCurrency,
   getTimeRemaining,
@@ -12,21 +13,17 @@ export default function AuctionCard({
   onToggleSaved,
   onOpen,
 }) {
-  // Initialize the timestamp without setting state in an effect.
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    // Update the current time every second.
     const intervalId = setInterval(() => {
       setNow(Date.now());
     }, 1000);
 
-    // Clean up when the component unmounts.
     return () => clearInterval(intervalId);
   }, []);
 
-  const ended =
-    new Date(auction.endsAt).getTime() <= now;
+  const ended = new Date(auction.endsAt).getTime() <= now;
 
   return (
     <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg hover:shadow-slate-200/60">
@@ -124,13 +121,12 @@ export default function AuctionCard({
           </span>
         </div>
 
-        <Button
-          variant="secondary"
-          onClick={() => onOpen(auction)}
-          className="mt-4 w-full"
+        <Link
+          to={`/auctions/${auction.id}`}
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
         >
           View auction
-        </Button>
+        </Link>
       </div>
     </article>
   );
