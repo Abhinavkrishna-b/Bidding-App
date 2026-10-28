@@ -16,6 +16,10 @@ export default function MyListingsPage() {
     listings,
     totalListings,
     counts,
+    loading,
+    error,
+    saving,
+    reloadListings,
     search,
     setSearch,
     status,
@@ -40,12 +44,6 @@ export default function MyListingsPage() {
       <main className="mx-auto max-w-7xl space-y-7 px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
         <MyListingsHeader totalListings={totalListings} />
 
-        <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-sm leading-6 text-indigo-900">
-          <span className="font-semibold">Prototype mode:</span>{" "}
-          Listing edits and management actions are held in local page state.
-          They are not saved to a server.
-        </div>
-
         {notice && (
           <div
             role="status"
@@ -64,6 +62,22 @@ export default function MyListingsPage() {
           </div>
         )}
 
+        {error && (
+          <div
+            role="alert"
+            className="flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          >
+            <p>{error}</p>
+            <button
+              type="button"
+              onClick={reloadListings}
+              className="shrink-0 font-semibold underline underline-offset-2"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         <ListingFilters
           search={search}
           onSearchChange={setSearch}
@@ -73,7 +87,11 @@ export default function MyListingsPage() {
         />
 
         <section aria-live="polite" className="space-y-4">
-          {listings.length > 0 ? (
+          {loading ? (
+            <p className="rounded-2xl border border-slate-200 bg-white px-5 py-14 text-center text-sm text-slate-500">
+              Loading your listings...
+            </p>
+          ) : listings.length > 0 ? (
             <>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm text-slate-500">
@@ -143,7 +161,10 @@ export default function MyListingsPage() {
       </main>
 
       <EditListingModal
+        key={editingListing?.id || "closed"}
         listing={editingListing}
+        error={error}
+        isSaving={saving}
         onClose={() => setEditingListing(null)}
         onSave={(updates) =>
           saveListing(editingListing.id, updates)
@@ -155,6 +176,7 @@ export default function MyListingsPage() {
         action={pendingAction?.action}
         onCancel={() => setPendingAction(null)}
         onConfirm={confirmAction}
+        isLoading={saving}
       />
     </div>
   );

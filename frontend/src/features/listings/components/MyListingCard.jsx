@@ -1,12 +1,10 @@
 
 import {
-  ArrowUpRight,
   Clock3,
   Eye,
   MapPin,
   MoreHorizontal,
   Pencil,
-  Trash2,
   Ban,
 } from "lucide-react";
 import { useState } from "react";
@@ -27,8 +25,8 @@ export default function MyListingCard({
   onAction,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const isDraft = listing.status === "draft";
   const isActive = listing.status === "active";
+  const canManage = isActive && listing.bidCount === 0;
 
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md">
@@ -63,62 +61,46 @@ export default function MyListingCard({
               </h2>
             </div>
 
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                aria-label={`Actions for ${listing.title}`}
-                aria-expanded={menuOpen}
-                onClick={() => setMenuOpen((open) => !open)}
-                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-              >
-                <MoreHorizontal size={20} />
-              </button>
+            {canManage && (
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  aria-label={`Actions for ${listing.title}`}
+                  aria-expanded={menuOpen}
+                  onClick={() => setMenuOpen((open) => !open)}
+                  className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                >
+                  <MoreHorizontal size={20} />
+                </button>
 
-              {menuOpen && (
-                <div className="absolute right-0 top-10 z-10 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onEdit(listing);
-                    }}
-                    disabled={!isDraft && !isActive}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    <Pencil size={15} />
-                    Edit listing
-                  </button>
-
-                  {isActive && (
+                {menuOpen && (
+                  <div className="absolute right-0 top-10 z-10 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
                     <button
                       type="button"
                       onClick={() => {
                         setMenuOpen(false);
-                        onAction(listing, "end");
+                        onEdit(listing);
                       }}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-amber-700 hover:bg-amber-50"
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      <Pencil size={15} />
+                      Edit listing
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onAction(listing, "cancel");
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-red-700 hover:bg-red-50"
                     >
                       <Ban size={15} />
-                      End auction
+                      Cancel listing
                     </button>
-                  )}
-
-                  {!isActive && !isDraft && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        onAction(listing, "delete");
-                      }}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 size={15} />
-                      Remove record
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
@@ -143,13 +125,11 @@ export default function MyListingCard({
             <div className="grid grid-cols-2 gap-x-6 gap-y-1">
               <div>
                 <p className="text-xs text-slate-500">
-                  {isDraft ? "Starting price" : "Current bid"}
+                  {listing.bidCount === 0 ? "Starting price" : "Current bid"}
                 </p>
                 <p className="mt-1 text-base font-bold text-slate-900">
                   {formatCurrency(
-                    isDraft
-                      ? listing.startingPrice
-                      : listing.currentBid || listing.startingPrice
+                    listing.currentBid || listing.startingPrice
                   )}
                 </p>
               </div>
@@ -163,7 +143,7 @@ export default function MyListingCard({
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {!isDraft && (
+              {listing.status !== "cancelled" && (
                 <Link
                   to={`/auctions/${listing.id}`}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -173,7 +153,7 @@ export default function MyListingCard({
                 </Link>
               )}
 
-              {(isDraft || isActive) && (
+              {canManage && (
                 <button
                   type="button"
                   onClick={() => onEdit(listing)}
@@ -183,19 +163,13 @@ export default function MyListingCard({
                   Edit
                 </button>
               )}
-
-              {isDraft && (
-                <button
-                  type="button"
-                  onClick={() => onAction(listing, "publish")}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
-                >
-                  <ArrowUpRight size={15} />
-                  Publish demo
-                </button>
-              )}
             </div>
           </div>
+          {isActive && listing.bidCount > 0 && (
+            <p className="mt-3 text-xs text-slate-500">
+              This listing has bids, so its details and cancellation are locked to keep bidding fair.
+            </p>
+          )}
         </div>
       </div>
     </article>

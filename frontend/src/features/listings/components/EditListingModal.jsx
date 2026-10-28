@@ -20,6 +20,7 @@ function createInitialValues(listing) {
     condition: listing?.condition || "Good",
     description: listing?.description || "",
     startingPrice: String(listing?.startingPrice ?? ""),
+    minimumBidIncrement: String(listing?.minimumBidIncrement ?? 10),
     location: listing?.location || "",
   };
 }
@@ -28,11 +29,21 @@ export default function EditListingModal({
   listing,
   onClose,
   onSave,
+  error: saveError,
+  isSaving,
 }) {
   const [values, setValues] = useState(() =>
     createInitialValues(listing)
   );
   const [error, setError] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+    };
+  }, [imagePreview]);
 
   useEffect(() => {
     if (!listing) return;
@@ -67,12 +78,20 @@ export default function EditListingModal({
     setError("");
   }
 
+  function updateImage(event) {
+    const file = event.target.files?.[0] || null;
+    setImageFile(file);
+    setImagePreview(file ? URL.createObjectURL(file) : "");
+    setError("");
+  }
+
   function handleSubmit(event) {
     event.preventDefault();
 
     const title = values.title.trim();
     const description = values.description.trim();
     const price = Number(values.startingPrice);
+    const increment = Number(values.minimumBidIncrement);
     const location = values.location.trim();
 
     if (title.length < 5 || title.length > 100) {
@@ -103,8 +122,22 @@ export default function EditListingModal({
       return;
     }
 
+    if (!Number.isSafeInteger(increment) || increment <= 0) {
+      setError("Minimum bid increment must be a positive whole number.");
+      return;
+    }
+
     if (!location || location.length > 120) {
       setError("Enter a location of up to 120 characters.");
+      return;
+    }
+
+    if (
+      imageFile &&
+      (!["image/jpeg", "image/png", "image/webp"].includes(imageFile.type) ||
+        imageFile.size > 5 * 1024 * 1024)
+    ) {
+      setError("Choose a JPG, PNG, or WebP image up to 5 MB.");
       return;
     }
 
@@ -113,7 +146,9 @@ export default function EditListingModal({
       title,
       description,
       startingPrice: price,
+      minimumBidIncrement: increment,
       location,
+      imageFile,
     });
   }
 
@@ -163,30 +198,48 @@ export default function EditListingModal({
           onSubmit={handleSubmit}
           className="space-y-5 p-5 sm:p-7"
         >
-          {listing.image && (
+          {(imagePreview || listing.image) && (
             <div className="flex items-center gap-4 rounded-xl border border-slate-200 p-3">
               <img
-                src={listing.image}
+                src={imagePreview || listing.image}
                 alt=""
                 className="h-16 w-16 rounded-lg bg-slate-100 object-cover"
               />
 
-              <div>
+              <label className="min-w-0 flex-1 cursor-pointer">
                 <p className="text-sm font-semibold text-slate-800">
-                  Current cover image
+                  {imageFile ? "New cover image" : "Current cover image"}
                 </p>
 
-                <p className="mt-1 text-xs text-slate-500">
-                  Image replacement will be connected during
-                  storage integration.
+                <p className="mt-1 text-xs text-indigo-700">
+                  Choose a replacement photo
                 </p>
-              </div>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={updateImage}
+                />
+              </label>
 
               <ImagePlus
                 size={19}
                 className="ml-auto shrink-0 text-slate-400"
               />
             </div>
+          )}
+
+          {!listing.image && !imagePreview && (
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-600 hover:bg-slate-50">
+              <ImagePlus size={19} className="text-slate-500" />
+              <span>{imageFile ? imageFile.name : "Add a listing photo"}</span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                onChange={updateImage}
+              />
+            </label>
           )}
 
           <div>
@@ -326,6 +379,26 @@ export default function EditListingModal({
             </div>
           </div>
 
+          <div>
+            <label
+              htmlFor="edit-increment"
+              className="text-sm font-semibold text-slate-700"
+            >
+              Minimum bid increment (₹)
+            </label>
+            <input
+              id="edit-increment"
+              name="minimumBidIncrement"
+              type="number"
+              min="1"
+              step="1"
+              value={values.minimumBidIncrement}
+              onChange={updateField}
+              required
+              className={fieldClass}
+            />
+          </div>
+
           {error && (
             <p
               role="alert"
@@ -335,10 +408,20 @@ export default function EditListingModal({
             </p>
           )}
 
+          {saveError && (
+            <p
+              role="alert"
+              className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+            >
+              {saveError}
+            </p>
+          )}
+
           <footer className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
+              disabled={isSaving}
               className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               Cancel
@@ -346,9 +429,10 @@ export default function EditListingModal({
 
             <button
               type="submit"
-              className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200"
+              disabled={isSaving}
+              className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Save changes
+              {isSaving ? "Saving..." : "Save changes"}
             </button>
           </footer>
         </form>

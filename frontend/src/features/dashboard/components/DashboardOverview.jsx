@@ -24,6 +24,9 @@ function ActivityEmptyState({ icon: Icon, title, description, to, action }) {
 
 export default function DashboardOverview({
   myListings,
+  listingsLoading,
+  listingsError,
+  onReloadListings,
   buyerActivity,
   onSelectTab,
 }) {
@@ -66,7 +69,25 @@ export default function DashboardOverview({
             </button>
           </div>
 
-          {recentListings.length > 0 ? (
+          {listingsLoading ? (
+            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-10 text-center text-sm text-slate-500">
+              Loading your listings...
+            </div>
+          ) : listingsError ? (
+            <div
+              role="alert"
+              className="rounded-2xl border border-red-200 bg-red-50 px-5 py-8 text-center text-sm text-red-800"
+            >
+              <p>{listingsError}</p>
+              <button
+                type="button"
+                onClick={onReloadListings}
+                className="mt-3 font-semibold underline underline-offset-2"
+              >
+                Try again
+              </button>
+            </div>
+          ) : recentListings.length > 0 ? (
             <DashboardAuctionList items={recentListings} type="listings" />
           ) : (
             <ActivityEmptyState

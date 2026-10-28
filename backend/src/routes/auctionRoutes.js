@@ -20,6 +20,15 @@ const allowedImageTypes = new Map([
   ["image/png", ".png"],
   ["image/webp", ".webp"],
 ]);
+const categories = [
+  "Electronics",
+  "Books",
+  "Accessories",
+  "Hostel Essentials",
+  "Cycles",
+  "Others",
+];
+const conditions = ["New", "Like New", "Good", "Fair"];
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -44,6 +53,17 @@ const upload = multer({
   },
 });
 
+function handleUpload(middleware) {
+  return (request, response, next) => {
+    middleware(request, response, (error) => {
+      if (error instanceof multer.MulterError) {
+        error.statusCode = 400;
+      }
+      next(error);
+    });
+  };
+}
+
 async function removeUploadedFiles(files = []) {
   await Promise.all(
     files.map((file) =>
@@ -52,6 +72,102 @@ async function removeUploadedFiles(files = []) {
       })
     )
   );
+}
+
+function getStoredImagePath(storageKey) {
+  if (!storageKey || path.basename(storageKey) !== storageKey) return null;
+  return path.join(uploadsDirectory, storageKey);
+}
+
+export function getListingUpdate(body, currentImages, replacementImage) {
+  const updates = {};
+  const stringFields = [
+    ["title", 5, 100],
+    ["description", 20, 1500],
+    ["location", 1, 120],
+  ];
+
+  for (const [field, minimum, maximum] of stringFields) {
+    if (body[field] === undefined) continue;
+    if (typeof body[field] !== "string") {
+      const error = new Error(`Enter a valid ${field}.`);
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const value = body[field].trim();
+    if (value.length < minimum || value.length > maximum) {
+      const error = new Error(
+        `${field} must contain ${minimum}–${maximum} characters.`
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    updates[field === "location" ? "pickupLocation" : field] = value;
+  }
+
+  if (body.category !== undefined) {
+    if (!categories.includes(body.category)) {
+      const error = new Error("Choose a valid category.");
+      error.statusCode = 400;
+      throw error;
+    }
+    updates.category = body.category;
+  }
+
+  if (body.condition !== undefined) {
+    if (!conditions.includes(body.condition)) {
+      const error = new Error("Choose a valid item condition.");
+      error.statusCode = 400;
+      throw error;
+    }
+    updates.condition = body.condition;
+  }
+
+  for (const field of ["startingPrice", "minimumBidIncrement"]) {
+    if (body[field] === undefined) continue;
+    const value = Number(body[field]);
+    if (!Number.isSafeInteger(value) || value < 1) {
+      const error = new Error(`${field} must be a positive whole number.`);
+      error.statusCode = 400;
+      throw error;
+    }
+    updates[field] = value;
+  }
+
+  if (replacementImage) {
+    const primaryImage =
+      currentImages.find((image) => image.isPrimary) || currentImages[0];
+    const otherImages = currentImages.filter(
+      (image) => image !== primaryImage
+    );
+    updates.images = [
+      {
+        url: `/uploads/${replacementImage.filename}`,
+        storageKey: replacementImage.filename,
+        altText: updates.title || primaryImage?.altText || "",
+        isPrimary: true,
+      },
+      ...otherImages.map((image) => ({
+        ...image.toObject(),
+        isPrimary: false,
+      })),
+    ];
+  } else if (updates.title && currentImages.length > 0) {
+    updates.images = currentImages.map((image) => ({
+      ...image.toObject(),
+      altText: image.isPrimary ? updates.title : image.altText,
+    }));
+  }
+
+  if (Object.keys(updates).length === 0) {
+    const error = new Error("Provide at least one listing change.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return updates;
 }
 
 function getAuctionId(value) {
@@ -72,6 +188,14 @@ router.get("/", async (_request, response) => {
   })
     .populate("seller", "name email")
     .sort({ endsAt: 1 })
+    .lean();
+
+  response.json({ auctions });
+});
+
+router.get("/mine", requireAuth, async (request, response) => {
+  const auctions = await Auction.find({ seller: request.user._id })
+    .sort({ createdAt: -1 })
     .lean();
 
   response.json({ auctions });
@@ -106,7 +230,7 @@ router.get("/:auctionId/bids", async (request, response) => {
 router.post(
   "/",
   requireAuth,
-  upload.array("images", 5),
+  handleUpload(upload.array("images", 5)),
   async (request, response, next) => {
     const files = request.files || [];
 
@@ -174,6 +298,169 @@ router.post(
         next(cleanupError);
         return;
       }
+      next(error);
+    }
+  }
+);
+
+router.patch(
+  "/:auctionId",
+  requireAuth,
+  handleUpload(upload.single("image")),
+  async (request, response, next) => {
+    const replacementImage = request.file;
+    let updateSaved = false;
+
+    try {
+      const auctionId = getAuctionId(request.params.auctionId);
+      const auction = await Auction.findOne({
+        _id: auctionId,
+        seller: request.user._id,
+      });
+
+      if (!auction) {
+        const error = new Error("Listing not found.");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const now = new Date();
+      if (
+        auction.status !== "active" ||
+        auction.startsAt > now ||
+        auction.endsAt <= now ||
+        auction.bidCount !== 0
+      ) {
+        const error = new Error(
+          "Only active listings with no bids can be edited."
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+
+      const updates = getListingUpdate(
+        request.body,
+        auction.images,
+        replacementImage
+      );
+      const previousPrimaryImage = auction.images.find(
+        (image) => image.isPrimary
+      );
+      const updatedAuction = await Auction.findOneAndUpdate(
+        {
+          _id: auctionId,
+          seller: request.user._id,
+          status: "active",
+          startsAt: { $lte: now },
+          endsAt: { $gt: now },
+          bidCount: 0,
+          currentBid: null,
+          leadingBidder: null,
+        },
+        { $set: updates },
+        { new: true, runValidators: true }
+      )
+        .populate("seller", "name email")
+        .lean();
+
+      if (!updatedAuction) {
+        const error = new Error(
+          "This listing changed while you were editing it. Refresh and try again."
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+      updateSaved = true;
+
+      if (replacementImage) {
+        const oldImagePath = getStoredImagePath(
+          previousPrimaryImage?.storageKey
+        );
+        if (oldImagePath) {
+          await fs.unlink(oldImagePath).catch((error) => {
+            if (error.code !== "ENOENT") {
+              console.error("Could not remove replaced listing image:", error.message);
+            }
+          });
+        }
+      }
+
+      request.app.get("io")?.emit("auction:updated", {
+        id: updatedAuction._id.toString(),
+        currentBid: updatedAuction.currentBid,
+        bidCount: updatedAuction.bidCount,
+        status: updatedAuction.status,
+      });
+      response.json({ auction: updatedAuction });
+    } catch (error) {
+      if (replacementImage && !updateSaved) {
+        try {
+          await removeUploadedFiles([replacementImage]);
+        } catch (cleanupError) {
+          next(cleanupError);
+          return;
+        }
+      }
+      next(error);
+    }
+  }
+);
+
+router.post(
+  "/:auctionId/cancel",
+  requireAuth,
+  async (request, response, next) => {
+    try {
+      const auctionId = getAuctionId(request.params.auctionId);
+      const now = new Date();
+      const auction = await Auction.findOneAndUpdate(
+        {
+          _id: auctionId,
+          seller: request.user._id,
+          status: "active",
+          startsAt: { $lte: now },
+          endsAt: { $gt: now },
+          bidCount: 0,
+          currentBid: null,
+          leadingBidder: null,
+        },
+        {
+          $set: {
+            status: "cancelled",
+            closedAt: now,
+          },
+        },
+        { new: true, runValidators: true }
+      )
+        .populate("seller", "name email")
+        .lean();
+
+      if (!auction) {
+        const ownedAuction = await Auction.exists({
+          _id: auctionId,
+          seller: request.user._id,
+        });
+        if (!ownedAuction) {
+          const error = new Error("Listing not found.");
+          error.statusCode = 404;
+          throw error;
+        }
+
+        const error = new Error(
+          "Only active listings with no bids can be cancelled."
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+
+      request.app.get("io")?.emit("auction:updated", {
+        id: auction._id.toString(),
+        currentBid: auction.currentBid,
+        bidCount: auction.bidCount,
+        status: auction.status,
+      });
+      response.json({ auction });
+    } catch (error) {
       next(error);
     }
   }

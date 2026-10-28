@@ -1,30 +1,14 @@
 
-import { AlertTriangle, CheckCircle2, Trash2, X } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 
 const actionDetails = {
-  end: {
-    title: "End this auction?",
+  cancel: {
+    title: "Cancel this listing?",
     description:
-      "This will mark the listing as ended in this prototype. It will not determine a real winner or cancel server-side bidding.",
-    confirmLabel: "End auction",
-    confirmClass: "bg-amber-600 hover:bg-amber-700",
-    Icon: AlertTriangle,
-  },
-  delete: {
-    title: "Remove this listing record?",
-    description:
-      "The listing will disappear from this prototype's management view. This action cannot be undone here.",
-    confirmLabel: "Remove record",
+      "The auction will stop accepting bids and be removed from the active marketplace. Listings with bids cannot be cancelled.",
+    confirmLabel: "Cancel listing",
     confirmClass: "bg-red-600 hover:bg-red-700",
-    Icon: Trash2,
-  },
-  publish: {
-    title: "Publish this draft?",
-    description:
-      "This will mark the draft as active in the prototype. It will not create a real public auction on the server.",
-    confirmLabel: "Publish demo",
-    confirmClass: "bg-indigo-600 hover:bg-indigo-700",
-    Icon: CheckCircle2,
+    Icon: AlertTriangle,
   },
 };
 
@@ -33,6 +17,7 @@ export default function ListingActionDialog({
   action,
   onCancel,
   onConfirm,
+  isLoading,
 }) {
   if (!listing || !action) return null;
 
@@ -81,6 +66,7 @@ export default function ListingActionDialog({
           <button
             type="button"
             onClick={onCancel}
+            disabled={isLoading}
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             <X size={16} />
@@ -90,9 +76,10 @@ export default function ListingActionDialog({
           <button
             type="button"
             onClick={onConfirm}
-            className={`rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition ${config.confirmClass}`}
+            disabled={isLoading}
+            className={`rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${config.confirmClass}`}
           >
-            {config.confirmLabel}
+            {isLoading ? "Saving..." : config.confirmLabel}
           </button>
         </div>
       </section>

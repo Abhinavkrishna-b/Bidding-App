@@ -1,28 +1,64 @@
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { apiRequest, mapAuction } from "../../../services/api.js";
 import {
   getAuctionById,
   mockDashboardUser,
   mockMyBids,
-  mockMyListingIds,
   mockWatchlistIds,
   mockWonAuctionIds,
 } from "../data/mockDashboardData.js";
-import { getListingStatus } from "../utils/dashboardUtils.js";
-
 
 export default function useDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [myListings, setMyListings] = useState([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [listingsError, setListingsError] = useState("");
+
+  const loadMyListings = useCallback(async () => {
+    setListingsLoading(true);
+    try {
+      const result = await apiRequest("/auctions/mine");
+      const now = Date.now();
+      setMyListings(
+        result.auctions.map((auction) => {
+          const listing = mapAuction(auction);
+          const isExpired = new Date(listing.endsAt).getTime() <= now;
+          const status =
+            listing.status === "active" && isExpired
+              ? "ended"
+              : listing.status;
+
+          const outcomeLabels = {
+            active: "Active",
+            cancelled: "Cancelled",
+            sold: "Sold",
+            reserved: "Reserved",
+            unsold: "Unsold",
+            rejected: "Rejected",
+            failed_pickup: "Pickup failed",
+            awaiting_seller_decision: "Awaiting decision",
+          };
+
+          return {
+            ...listing,
+            dashboardStatus: outcomeLabels[status] || "Ended",
+          };
+        })
+      );
+      setListingsError("");
+    } catch (error) {
+      setListingsError(error.message || "Unable to load your listings.");
+    } finally {
+      setListingsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadMyListings);
+  }, [loadMyListings]);
 
   const data = useMemo(() => {
-    const myListings = mockMyListingIds
-      .map(getAuctionById)
-      .filter(Boolean)
-      .map((auction) => ({
-        ...auction,
-        dashboardStatus: getListingStatus(auction),
-      }));
-
     const myBids = mockMyBids
       .map((bid) => ({
         ...bid,
@@ -43,7 +79,6 @@ export default function useDashboard() {
     );
 
     return {
-      myListings,
       myBids,
       watchlist,
       wonAuctions,
@@ -78,12 +113,16 @@ export default function useDashboard() {
         },
       ],
     };
-  }, []);
+  }, [myListings]);
 
   return {
     user: mockDashboardUser,
     activeTab,
     setActiveTab,
+    listingsLoading,
+    listingsError,
+    reloadListings: loadMyListings,
     ...data,
+    myListings,
   };
 }

@@ -60,6 +60,9 @@ export default function UserDashboardPage() {
     setActiveTab,
     stats,
     myListings,
+    listingsLoading,
+    listingsError,
+    reloadListings,
     myBids,
     watchlist,
     wonAuctions,
@@ -100,6 +103,9 @@ export default function UserDashboardPage() {
         {activeTab === "overview" ? (
           <DashboardOverview
             myListings={myListings}
+            listingsLoading={listingsLoading}
+            listingsError={listingsError}
+            onReloadListings={reloadListings}
             myBids={myBids}
             onSelectTab={setActiveTab}
             buyerActivity={buyerActivity}
@@ -116,7 +122,25 @@ export default function UserDashboardPage() {
               </p>
             </div>
 
-            {activeTab === "bids" ? (
+            {activeTab === "listings" && listingsLoading ? (
+              <p className="rounded-2xl border border-slate-200 bg-white px-5 py-14 text-center text-sm text-slate-500">
+                Loading your listings...
+              </p>
+            ) : activeTab === "listings" && listingsError ? (
+              <div
+                role="alert"
+                className="rounded-2xl border border-red-200 bg-red-50 px-5 py-8 text-center text-sm text-red-800"
+              >
+                <p>{listingsError}</p>
+                <button
+                  type="button"
+                  onClick={reloadListings}
+                  className="mt-3 font-semibold underline underline-offset-2"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : activeTab === "bids" ? (
               buyerActivity.activeBids.length > 0 ? (
                 <div className="space-y-3">
                   {buyerActivity.activeBids.map((bid) => (

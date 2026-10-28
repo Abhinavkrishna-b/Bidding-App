@@ -6,7 +6,7 @@ const filters = [
   { value: "active", label: "Active" },
   { value: "ended", label: "Ended" },
   { value: "sold", label: "Sold" },
-  { value: "draft", label: "Drafts" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 export default function ListingFilters({
