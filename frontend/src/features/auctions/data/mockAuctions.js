@@ -6,6 +6,7 @@ export const categories = [
   "Accessories",
   "Hostel Essentials",
   "Cycles",
+  "Others",
 ];
 
 export const mockAuctions = [

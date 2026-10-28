@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Gavel, Plus, UserRound } from "lucide-react";
-import Button from "./Button.jsx";
+import { Link } from "react-router-dom";
 
 export default function Navbar({
-  onSell,
   onProfile,
 }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -26,11 +25,14 @@ export default function Navbar({
         </a>
 
         <div className="flex shrink-0 items-center gap-2">
-          <Button onClick={onSell} className="shrink-0">
+          <Link
+            to="/listings/new"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
+          >
             <Plus size={17} />
             <span className="hidden sm:inline">Sell an item</span>
             <span className="sm:hidden">Sell</span>
-          </Button>
+          </Link>
 
           <div className="relative">
             <button

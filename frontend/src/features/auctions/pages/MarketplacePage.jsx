@@ -29,12 +29,6 @@ export default function MarketplacePage() {
     });
   }, []);
 
-  const showSellNotice = useCallback(() => {
-    setNotice(
-      "The listing creation page will be available in the selling module."
-    );
-  }, []);
-
   const showProfileNotice = useCallback(() => {
     setNotice("User profiles will be available in the account module.");
   }, []);
@@ -71,7 +65,6 @@ export default function MarketplacePage() {
       className="min-h-screen bg-[#F7F8FC] text-slate-900"
     >
       <Navbar
-        onSell={showSellNotice}
         onProfile={showProfileNotice}
       />
 

@@ -15,7 +15,7 @@ export default function NoticeToast({ message, onClose }) {
   return (
     <div
       role="status"
-      className="fixed right-4 top-20 z-[60] flex max-w-sm items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl"
+      className="fixed right-4 top-20 z-60 flex max-w-sm items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl"
     >
       <CheckCircle2
         size={20}

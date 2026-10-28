@@ -1,9 +1,15 @@
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
-import "./App.css";
 import MarketplacePage from "./features/auctions/pages/MarketplacePage.jsx";
+import CreateListingPage from "./features/listings/pages/CreateListingPage.jsx";
 
-function App() {
-  return <MarketplacePage />;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<MarketplacePage />} />
+        <Route path="/listings/new" element={<CreateListingPage />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
-
-export default App;
