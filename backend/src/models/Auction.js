@@ -272,6 +272,13 @@ auctionSchema.pre("validate", function validateAuctionDates() {
     );
   }
 
+  if (this.winner && this.status === "cancelled" && !this.sellerDecisionAt) {
+    this.invalidate(
+      "sellerDecisionAt",
+      "A cancelled reserved sale must have a recorded seller decision."
+    );
+  }
+
   if (
     this.winner &&
     ![
@@ -281,6 +288,7 @@ auctionSchema.pre("validate", function validateAuctionDates() {
       "sold",
       "rejected",
       "failed_pickup",
+      "cancelled",
     ].includes(this.status)
   ) {
     this.invalidate(

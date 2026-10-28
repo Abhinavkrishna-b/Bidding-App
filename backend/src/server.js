@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { Server as SocketServer } from "socket.io";
 import app from "./app.js";
 import connectDatabase from "./config/database.js";
+import { startAuctionClosingWorker } from "./services/auctionLifecycle.js";
 
 const port = Number(process.env.PORT || 4000);
 const httpServer = createServer(app);
@@ -14,6 +15,7 @@ const io = new SocketServer(httpServer, {
   },
 });
 let server;
+let stopAuctionClosingWorker;
 let isShuttingDown = false;
 
 io.on("connection", (socket) => {
@@ -32,6 +34,7 @@ async function startServer() {
   await connectDatabase();
 
   app.set("io", io);
+  stopAuctionClosingWorker = startAuctionClosingWorker(io);
   server = httpServer.listen(port, () => {
     console.info(`Campus Auction API listening on port ${port}.`);
   });
@@ -49,6 +52,7 @@ async function shutdown(signal) {
   console.info(`${signal} received; shutting down gracefully.`);
 
   try {
+    stopAuctionClosingWorker?.();
     if (server) {
       await new Promise((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()));

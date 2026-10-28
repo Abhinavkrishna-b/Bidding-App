@@ -64,6 +64,8 @@ export default function AuctionDetailsPage() {
           <BiddingPanel
             currentBid={auctionDetails.currentBid}
             startingPrice={auction.startingPrice}
+            auctionStatus={auction.status}
+            winner={auction.winner}
             bidAmount={auctionDetails.bidAmount}
             bidError={auctionDetails.bidError}
             notice={auctionDetails.notice}

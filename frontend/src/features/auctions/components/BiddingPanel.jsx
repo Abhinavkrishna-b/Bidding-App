@@ -7,6 +7,8 @@ import AuctionStatus from "./AuctionStatus.jsx";
 export default function BiddingPanel({
   currentBid,
   startingPrice,
+  auctionStatus,
+  winner,
   bidAmount,
   bidError,
   notice,
@@ -18,6 +20,18 @@ export default function BiddingPanel({
   onBidAmountChange,
   onPlaceBid,
 }) {
+  const outcomeMessages = {
+    awaiting_seller_decision:
+      "The auction ended. The seller is reviewing the highest bid.",
+    reserved: "The seller approved the winning bid. The item is reserved.",
+    sold: "The campus handover is complete. This item is sold.",
+    unsold: "The auction ended without any bids.",
+    rejected: "The seller rejected the winning bid.",
+    cancelled: "The seller cancelled this auction or reserved sale.",
+    failed_pickup: "The reserved winner did not complete the pickup.",
+  };
+  const outcomeMessage = outcomeMessages[auctionStatus];
+
   return (
     <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:sticky lg:top-6">
       <div className="flex items-center justify-between gap-3">
@@ -41,6 +55,18 @@ export default function BiddingPanel({
           isEnded={isEnded}
         />
       </div>
+
+      {outcomeMessage && (
+        <p
+          role="status"
+          className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-700"
+        >
+          {outcomeMessage}
+          {auctionStatus === "awaiting_seller_decision" && winner?.name
+            ? ` Provisional winner: ${winner.name}.`
+            : ""}
+        </p>
+      )}
 
       <form onSubmit={onPlaceBid} className="mt-6">
         <label

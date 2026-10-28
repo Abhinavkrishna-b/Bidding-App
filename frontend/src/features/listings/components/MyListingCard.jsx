@@ -27,6 +27,8 @@ export default function MyListingCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const isActive = listing.status === "active";
   const canManage = isActive && listing.bidCount === 0;
+  const awaitingDecision = listing.status === "awaiting_seller_decision";
+  const isReserved = listing.status === "reserved";
 
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md">
@@ -165,6 +167,57 @@ export default function MyListingCard({
               )}
             </div>
           </div>
+          {listing.winner?.name && (
+            <p className="mt-3 text-sm text-slate-600">
+              Winning bidder:{" "}
+              <span className="font-semibold text-slate-800">
+                {listing.winner.name}
+              </span>
+            </p>
+          )}
+          {awaitingDecision && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => onAction(listing, "approve")}
+                className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
+                Approve winning bid
+              </button>
+              <button
+                type="button"
+                onClick={() => onAction(listing, "reject")}
+                className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+              >
+                Reject winning bid
+              </button>
+            </div>
+          )}
+          {isReserved && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => onAction(listing, "complete")}
+                className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Confirm handover
+              </button>
+              <button
+                type="button"
+                onClick={() => onAction(listing, "failed_pickup")}
+                className="rounded-lg border border-amber-200 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50"
+              >
+                Record failed pickup
+              </button>
+              <button
+                type="button"
+                onClick={() => onAction(listing, "cancel_sale")}
+                className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+              >
+                Cancel sale
+              </button>
+            </div>
+          )}
           {isActive && listing.bidCount > 0 && (
             <p className="mt-3 text-xs text-slate-500">
               This listing has bids, so its details and cancellation are locked to keep bidding fair.

@@ -1,5 +1,11 @@
 
-import { AlertTriangle, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  CircleX,
+  PackageCheck,
+  X,
+} from "lucide-react";
 
 const actionDetails = {
   cancel: {
@@ -8,6 +14,46 @@ const actionDetails = {
       "The auction will stop accepting bids and be removed from the active marketplace. Listings with bids cannot be cancelled.",
     confirmLabel: "Cancel listing",
     confirmClass: "bg-red-600 hover:bg-red-700",
+    Icon: AlertTriangle,
+  },
+  cancel_sale: {
+    title: "Cancel this reserved sale?",
+    description:
+      "The reservation will end and the item will no longer be marked as reserved for the winner.",
+    confirmLabel: "Cancel reserved sale",
+    confirmClass: "bg-red-600 hover:bg-red-700",
+    Icon: AlertTriangle,
+  },
+  approve: {
+    title: "Approve the winning bid?",
+    description:
+      "This reserves the item for the highest bidder. Record the campus handover after pickup.",
+    confirmLabel: "Approve and reserve",
+    confirmClass: "bg-indigo-600 hover:bg-indigo-700",
+    Icon: CheckCircle2,
+  },
+  reject: {
+    title: "Reject the winning bid?",
+    description:
+      "The auction will be recorded as rejected and the item will not be reserved for the winner.",
+    confirmLabel: "Reject winning bid",
+    confirmClass: "bg-red-600 hover:bg-red-700",
+    Icon: CircleX,
+  },
+  complete: {
+    title: "Confirm the campus handover?",
+    description:
+      "Only confirm this after the item has been handed to the winner. This marks the auction as sold.",
+    confirmLabel: "Confirm handover",
+    confirmClass: "bg-emerald-600 hover:bg-emerald-700",
+    Icon: PackageCheck,
+  },
+  failed_pickup: {
+    title: "Record a failed pickup?",
+    description:
+      "Use this when the reserved winner did not complete the campus pickup.",
+    confirmLabel: "Record failed pickup",
+    confirmClass: "bg-amber-600 hover:bg-amber-700",
     Icon: AlertTriangle,
   },
 };

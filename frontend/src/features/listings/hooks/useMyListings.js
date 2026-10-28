@@ -1,6 +1,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiRequest, mapAuction } from "../../../services/api.js";
+import { connectAuctionSocket } from "../../../services/auctionSocket.js";
 
 const endedStatuses = new Set([
   "ended",
@@ -26,20 +27,7 @@ export default function useMyListings() {
     setLoading(true);
     try {
       const result = await apiRequest("/auctions/mine");
-      const now = Date.now();
-      setListings(
-        result.auctions.map((auction) => {
-          const listing = mapAuction(auction);
-          return {
-            ...listing,
-            status:
-              listing.status === "active" &&
-              new Date(listing.endsAt).getTime() <= now
-                ? "ended"
-                : listing.status,
-          };
-        })
-      );
+      setListings(result.auctions.map(mapAuction));
       setError("");
     } catch (requestError) {
       setError(requestError.message || "Unable to load your listings.");
@@ -51,6 +39,30 @@ export default function useMyListings() {
   useEffect(() => {
     void Promise.resolve().then(loadListings);
   }, [loadListings]);
+
+  useEffect(() => {
+    const socket = connectAuctionSocket();
+    socket.on("auction:updated", (event) => {
+      setListings((currentListings) =>
+        currentListings.map((listing) =>
+          listing.id === event.id
+            ? {
+                ...listing,
+                status: event.status ?? listing.status,
+                currentBid: event.currentBid ?? listing.currentBid,
+                bidCount: event.bidCount ?? listing.bidCount,
+                winner:
+                  typeof event.winner === "object"
+                    ? event.winner
+                    : listing.winner,
+              }
+            : listing
+        )
+      );
+    });
+
+    return () => socket.disconnect();
+  }, []);
 
   const counts = useMemo(() => {
     const result = {
@@ -127,25 +139,58 @@ export default function useMyListings() {
   async function confirmAction() {
     if (!pendingAction) return;
     const { listing, action } = pendingAction;
-    if (action !== "cancel") return;
+    const actionRequests = {
+      cancel: {
+        path: `/auctions/${listing.id}/cancel`,
+        body: undefined,
+        message: "Your listing has been cancelled.",
+      },
+      cancel_sale: {
+        path: `/auctions/${listing.id}/cancel`,
+        body: undefined,
+        message: "The reserved sale has been cancelled.",
+      },
+      approve: {
+        path: `/auctions/${listing.id}/decision`,
+        body: { decision: "approve" },
+        message: "The winning bid is approved and reserved for the winner.",
+      },
+      reject: {
+        path: `/auctions/${listing.id}/decision`,
+        body: { decision: "reject" },
+        message: "The winning bid has been rejected.",
+      },
+      complete: {
+        path: `/auctions/${listing.id}/pickup`,
+        body: { outcome: "completed" },
+        message: "The handover is recorded and the auction is marked sold.",
+      },
+      failed_pickup: {
+        path: `/auctions/${listing.id}/pickup`,
+        body: { outcome: "failed" },
+        message: "The failed pickup has been recorded.",
+      },
+    };
+    const request = actionRequests[action];
+    if (!request) return;
 
     setSaving(true);
     setError("");
     try {
-      await apiRequest(`/auctions/${listing.id}/cancel`, {
+      const result = await apiRequest(request.path, {
         method: "POST",
+        body: request.body,
       });
+      const updatedListing = mapAuction(result.auction);
       setListings((previous) =>
         previous.map((item) =>
-          item.id === listing.id
-            ? { ...item, status: "cancelled" }
-            : item
+          item.id === listing.id ? updatedListing : item
         )
       );
       setPendingAction(null);
-      setNotice("Your listing has been cancelled.");
+      setNotice(request.message);
     } catch (requestError) {
-      setError(requestError.message || "Unable to cancel this listing.");
+      setError(requestError.message || "Unable to record this auction outcome.");
     } finally {
       setSaving(false);
     }

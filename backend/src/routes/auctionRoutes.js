@@ -26,6 +26,16 @@ router.patch(
   auctionController.update
 );
 router.post("/:auctionId/cancel", requireAuth, auctionController.cancel);
+router.post(
+  "/:auctionId/decision",
+  requireAuth,
+  auctionController.decideOutcome
+);
+router.post(
+  "/:auctionId/pickup",
+  requireAuth,
+  auctionController.recordPickup
+);
 router.post("/:auctionId/bids", requireAuth, auctionController.placeBid);
 
 export default router;

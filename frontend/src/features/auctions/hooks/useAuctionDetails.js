@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiRequest, mapAuction } from "../../../services/api.js";
 import { connectAuctionSocket } from "../../../services/auctionSocket.js";
 import useAuth from "../../auth/hooks/useAuth.js";
@@ -33,6 +33,11 @@ export default function useAuctionDetails(auctionId) {
   const [error, setError] = useState("");
   const [loadedAuctionId, setLoadedAuctionId] = useState("");
   const [now, setNow] = useState(0);
+  const bidRequestRef = useRef(null);
+
+  useEffect(() => {
+    bidRequestRef.current = null;
+  }, [auctionId]);
 
   useEffect(() => {
     let active = true;
@@ -75,6 +80,18 @@ export default function useAuctionDetails(auctionId) {
           : current
       );
       setBidHistory((current) => addBid(current, event.bid));
+    });
+    socket.on("auction:updated", (event) => {
+      if (String(event.id) !== String(auctionId)) return;
+      setAuction((current) =>
+        current
+          ? {
+              ...current,
+              status: event.status ?? current.status,
+              winner: event.winner ?? current.winner,
+            }
+          : current
+      );
     });
 
     return () => socket.disconnect();
@@ -126,9 +143,27 @@ export default function useAuctionDetails(auctionId) {
     }
 
     try {
+      const amount = Number(bidAmount);
+      if (bidRequestRef.current?.amount !== amount) {
+        const storageKey = `auction-bid-request:${auction.id}:${amount}`;
+        bidRequestRef.current = {
+          amount,
+          storageKey,
+          requestId:
+            sessionStorage.getItem(storageKey) || crypto.randomUUID(),
+        };
+        sessionStorage.setItem(
+          storageKey,
+          bidRequestRef.current.requestId
+        );
+      }
+
       const response = await apiRequest(`/auctions/${auction.id}/bids`, {
         method: "POST",
-        body: { amount: Number(bidAmount), requestId: crypto.randomUUID() },
+        body: {
+          amount,
+          requestId: bidRequestRef.current.requestId,
+        },
       });
 
       setAuction((current) =>
@@ -141,6 +176,8 @@ export default function useAuctionDetails(auctionId) {
           : current
       );
       setBidHistory((current) => addBid(current, response.bid));
+      sessionStorage.removeItem(bidRequestRef.current.storageKey);
+      bidRequestRef.current = null;
       setBidAmount("");
       setNotice("Your bid was placed.");
     } catch (requestError) {
@@ -150,6 +187,9 @@ export default function useAuctionDetails(auctionId) {
 
   function updateBidAmount(value) {
     setBidAmount(value);
+    if (Number(value) !== bidRequestRef.current?.amount) {
+      bidRequestRef.current = null;
+    }
     setBidError("");
     setNotice("");
   }

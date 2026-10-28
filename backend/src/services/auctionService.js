@@ -5,6 +5,10 @@ import Bid from "../models/Bid.js";
 import HttpError from "../errors/HttpError.js";
 import placeBid from "./placeBid.js";
 import {
+  closeExpiredAuction,
+  closeExpiredAuctions,
+} from "./auctionLifecycle.js";
+import {
   getStoredImagePath,
   removeUploadedFiles,
 } from "../utils/imageStorage.js";
@@ -130,15 +134,19 @@ export async function listActiveAuctions() {
     .lean();
 }
 
-export function listSellerAuctions(sellerId) {
+export async function listSellerAuctions(sellerId) {
+  await closeExpiredAuctions();
   return Auction.find({ seller: sellerId })
+    .populate("winner", "name")
     .sort({ createdAt: -1 })
     .lean();
 }
 
 export async function getAuction(id) {
+  await closeExpiredAuction(getAuctionId(id));
   const auction = await Auction.findById(getAuctionId(id))
     .populate("seller", "name email")
+    .populate("winner", "name")
     .lean();
   if (!auction) throw new HttpError(404, "Auction not found.");
   return auction;
@@ -256,6 +264,7 @@ export async function updateSellerAuction({
       { new: true, runValidators: true }
     )
       .populate("seller", "name email")
+      .populate("winner", "name")
       .lean();
 
     if (!updatedAuction) {
@@ -280,7 +289,7 @@ export async function updateSellerAuction({
 export async function cancelSellerAuction({ sellerId, id }) {
   const auctionId = getAuctionId(id);
   const now = new Date();
-  const auction = await Auction.findOneAndUpdate(
+  let auction = await Auction.findOneAndUpdate(
     {
       _id: auctionId,
       seller: sellerId,
@@ -295,7 +304,22 @@ export async function cancelSellerAuction({ sellerId, id }) {
     { new: true, runValidators: true }
   )
     .populate("seller", "name email")
+    .populate("winner", "name")
     .lean();
+
+  if (!auction) {
+    auction = await Auction.findOneAndUpdate(
+      {
+        _id: auctionId,
+        seller: sellerId,
+        status: "reserved",
+      },
+      { $set: { status: "cancelled" } },
+      { new: true, runValidators: true }
+    )
+      .populate("seller", "name email")
+      .lean();
+  }
 
   if (auction) return auction;
 
@@ -307,7 +331,72 @@ export async function cancelSellerAuction({ sellerId, id }) {
 
   throw new HttpError(
     409,
-    "Only active listings with no bids can be cancelled."
+    "Only active listings without bids or reserved sales can be cancelled."
+  );
+}
+
+export async function recordSellerDecision({ sellerId, id, decision }) {
+  if (!["approve", "reject"].includes(decision)) {
+    throw new HttpError(400, "Choose approve or reject for the seller decision.");
+  }
+
+  const auction = await Auction.findOneAndUpdate(
+    {
+      _id: getAuctionId(id),
+      seller: sellerId,
+      status: "awaiting_seller_decision",
+      winner: { $ne: null },
+    },
+    {
+      $set: {
+        status: decision === "approve" ? "reserved" : "rejected",
+        sellerDecisionAt: new Date(),
+      },
+    },
+    { new: true, runValidators: true }
+  )
+    .populate("winner", "name")
+    .lean();
+
+  if (auction) return auction;
+  const ownedAuction = await Auction.exists({ _id: id, seller: sellerId });
+  if (!ownedAuction) throw new HttpError(404, "Listing not found.");
+  throw new HttpError(
+    409,
+    "Only the seller can decide the outcome of an auction awaiting their decision."
+  );
+}
+
+export async function recordPickupOutcome({ sellerId, id, outcome }) {
+  if (!["completed", "failed"].includes(outcome)) {
+    throw new HttpError(400, "Choose completed or failed for the pickup outcome.");
+  }
+
+  const now = new Date();
+  const updates = {
+    status: outcome === "completed" ? "sold" : "failed_pickup",
+  };
+  if (outcome === "completed") updates.completedAt = now;
+
+  const auction = await Auction.findOneAndUpdate(
+    {
+      _id: getAuctionId(id),
+      seller: sellerId,
+      status: "reserved",
+      winner: { $ne: null },
+    },
+    { $set: updates },
+    { new: true, runValidators: true }
+  )
+    .populate("winner", "name")
+    .lean();
+
+  if (auction) return auction;
+  const ownedAuction = await Auction.exists({ _id: id, seller: sellerId });
+  if (!ownedAuction) throw new HttpError(404, "Listing not found.");
+  throw new HttpError(
+    409,
+    "Pickup outcomes can only be recorded for a reserved sale."
   );
 }
 
@@ -318,6 +407,7 @@ export async function submitAuctionBid({
   requestId,
 }) {
   const id = getAuctionId(auctionId);
+  await closeExpiredAuction(id);
   const bid = await placeBid({ auctionId: id, bidderId, amount, requestId });
   const [populatedBid, auction] = await Promise.all([
     Bid.findById(bid._id).populate("bidder", "name").lean(),

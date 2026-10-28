@@ -19,15 +19,9 @@ export default function useDashboard() {
     setListingsLoading(true);
     try {
       const result = await apiRequest("/auctions/mine");
-      const now = Date.now();
       setMyListings(
         result.auctions.map((auction) => {
           const listing = mapAuction(auction);
-          const isExpired = new Date(listing.endsAt).getTime() <= now;
-          const status =
-            listing.status === "active" && isExpired
-              ? "ended"
-              : listing.status;
 
           const outcomeLabels = {
             active: "Active",
@@ -42,7 +36,7 @@ export default function useDashboard() {
 
           return {
             ...listing,
-            dashboardStatus: outcomeLabels[status] || "Ended",
+            dashboardStatus: outcomeLabels[listing.status] || "Ended",
           };
         })
       );

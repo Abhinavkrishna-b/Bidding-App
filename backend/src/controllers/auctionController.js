@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import {
   cancelSellerAuction,
   createAuction,
@@ -6,6 +5,8 @@ import {
   listActiveAuctions,
   listAuctionBids,
   listSellerAuctions,
+  recordPickupOutcome,
+  recordSellerDecision,
   submitAuctionBid,
   updateSellerAuction,
 } from "../services/auctionService.js";
@@ -74,17 +75,47 @@ export async function cancel(request, response) {
   response.json({ auction });
 }
 
+export async function decideOutcome(request, response) {
+  const auction = await recordSellerDecision({
+    sellerId: request.user._id,
+    id: request.params.auctionId,
+    decision: request.body?.decision,
+  });
+
+  request.app.get("io")?.emit("auction:updated", {
+    id: auction._id.toString(),
+    currentBid: auction.currentBid,
+    bidCount: auction.bidCount,
+    status: auction.status,
+    winner: auction.winner,
+  });
+  response.json({ auction });
+}
+
+export async function recordPickup(request, response) {
+  const auction = await recordPickupOutcome({
+    sellerId: request.user._id,
+    id: request.params.auctionId,
+    outcome: request.body?.outcome,
+  });
+
+  request.app.get("io")?.emit("auction:updated", {
+    id: auction._id.toString(),
+    currentBid: auction.currentBid,
+    bidCount: auction.bidCount,
+    status: auction.status,
+    winner: auction.winner,
+  });
+  response.json({ auction });
+}
+
 export async function placeBid(request, response) {
   const amount = Number(request.body?.amount);
-  const requestId =
-    typeof request.body?.requestId === "string"
-      ? request.body.requestId
-      : randomUUID();
   const event = await submitAuctionBid({
     auctionId: request.params.auctionId,
     bidderId: request.user._id,
     amount,
-    requestId,
+    requestId: request.body?.requestId,
   });
 
   request.app.get("io")?.to(event.auction.id).emit("bid:placed", event);
