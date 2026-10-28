@@ -7,14 +7,17 @@ import DashboardTabs from "../components/DashboardTabs.jsx";
 import DashboardOverview from "../components/DashboardOverview.jsx";
 import DashboardAuctionList from "../components/DashboardAuctionList.jsx";
 import DashboardEmptyState from "../components/DashboardEmptyState.jsx";
+import BuyerBidCard from "../components/BuyerBidCard.jsx";
 import useDashboard from "../hooks/useDashboard.js";
+import useBuyerActivity from "../hooks/useBuyerActivity.js";
 
 const sectionInfo = {
   listings: {
     title: "My listings",
     description: "Manage and review items you've listed.",
     emptyTitle: "No listings yet",
-    emptyDescription: "Create your first listing to sell an item on campus.",
+    emptyDescription:
+      "Create your first listing to sell an item on campus.",
     actionLabel: "Create a listing",
     actionTo: "/listings/new",
   },
@@ -22,7 +25,8 @@ const sectionInfo = {
     title: "My bids",
     description: "Review your bids and check their current status.",
     emptyTitle: "No bids yet",
-    emptyDescription: "Explore the marketplace to find something worth bidding on.",
+    emptyDescription:
+      "Explore the marketplace to find something worth bidding on.",
     actionLabel: "Explore auctions",
     actionTo: "/",
   },
@@ -30,7 +34,8 @@ const sectionInfo = {
     title: "My watchlist",
     description: "Keep track of auctions you want to follow.",
     emptyTitle: "Your watchlist is empty",
-    emptyDescription: "Find interesting items and add them to your watchlist.",
+    emptyDescription:
+      "Find interesting items and add them to your watchlist.",
     actionLabel: "Browse items",
     actionTo: "/",
   },
@@ -38,7 +43,8 @@ const sectionInfo = {
     title: "Won auctions",
     description: "Review items you've won in completed auctions.",
     emptyTitle: "No auction wins yet",
-    emptyDescription: "Your completed wins will appear here when available.",
+    emptyDescription:
+      "Your completed wins will appear here when available.",
     actionLabel: "Explore auctions",
     actionTo: "/",
   },
@@ -57,6 +63,8 @@ export default function UserDashboardPage() {
     watchlist,
     wonAuctions,
   } = useDashboard();
+
+  const buyerActivity = useBuyerActivity();
 
   const sectionItems = {
     listings: myListings,
@@ -92,6 +100,7 @@ export default function UserDashboardPage() {
             myListings={myListings}
             myBids={myBids}
             onSelectTab={setActiveTab}
+            buyerActivity={buyerActivity}
           />
         ) : (
           <section className="space-y-5">
@@ -99,12 +108,31 @@ export default function UserDashboardPage() {
               <h2 className="text-xl font-bold tracking-tight text-slate-900">
                 {section.title}
               </h2>
+
               <p className="mt-1 text-sm text-slate-500">
                 {section.description}
               </p>
             </div>
 
-            {sectionItems[activeTab].length > 0 ? (
+            {activeTab === "bids" ? (
+              buyerActivity.activeBids.length > 0 ? (
+                <div className="space-y-3">
+                  {buyerActivity.activeBids.map((bid) => (
+                    <BuyerBidCard
+                      key={bid.id}
+                      bid={bid}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <DashboardEmptyState
+                  title="No active bids"
+                  description="Your active bidding activity will appear here."
+                  actionLabel="Explore auctions"
+                  actionTo="/"
+                />
+              )
+            ) : sectionItems[activeTab].length > 0 ? (
               <DashboardAuctionList
                 items={sectionItems[activeTab]}
                 type={activeTab}
