@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import MarketplacePage from "./features/auctions/pages/MarketplacePage.jsx";
 import AuctionDetailsPage from "./features/auctions/pages/AuctionDetailsPage.jsx";
 import CreateListingPage from "./features/listings/pages/CreateListingPage.jsx";
+import UserDashboardPage from "./features/dashboard/pages/UserDashboardPage.jsx";
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
         <Route path="/" element={<MarketplacePage />} />
         <Route path="/auctions/:auctionId" element={<AuctionDetailsPage />} />
         <Route path="/listings/new" element={<CreateListingPage />} />
+        <Route path="/dashboard" element={<UserDashboardPage />} />
       </Routes>
     </BrowserRouter>
   );

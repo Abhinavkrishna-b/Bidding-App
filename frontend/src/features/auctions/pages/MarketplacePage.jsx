@@ -29,10 +29,6 @@ export default function MarketplacePage() {
     });
   }, []);
 
-  const showProfileNotice = useCallback(() => {
-    setNotice("User profiles will be available in the account module.");
-  }, []);
-
   const closeModal = useCallback(() => {
     setSelectedAuction(null);
   }, []);
@@ -64,9 +60,7 @@ export default function MarketplacePage() {
       id="top"
       className="min-h-screen bg-[#F7F8FC] text-slate-900"
     >
-      <Navbar
-        onProfile={showProfileNotice}
-      />
+      <Navbar />
 
       <NoticeToast
         message={notice}

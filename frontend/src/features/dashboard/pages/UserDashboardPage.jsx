@@ -1,0 +1,125 @@
+
+import { useNavigate } from "react-router-dom";
+import Navbar from "../../../components/Navbar.jsx";
+import DashboardHeader from "../components/DashboardHeader.jsx";
+import DashboardStats from "../components/DashboardStats.jsx";
+import DashboardTabs from "../components/DashboardTabs.jsx";
+import DashboardOverview from "../components/DashboardOverview.jsx";
+import DashboardAuctionList from "../components/DashboardAuctionList.jsx";
+import DashboardEmptyState from "../components/DashboardEmptyState.jsx";
+import useDashboard from "../hooks/useDashboard.js";
+
+const sectionInfo = {
+  listings: {
+    title: "My listings",
+    description: "Manage and review items you've listed.",
+    emptyTitle: "No listings yet",
+    emptyDescription: "Create your first listing to sell an item on campus.",
+    actionLabel: "Create a listing",
+    actionTo: "/listings/new",
+  },
+  bids: {
+    title: "My bids",
+    description: "Review your bids and check their current status.",
+    emptyTitle: "No bids yet",
+    emptyDescription: "Explore the marketplace to find something worth bidding on.",
+    actionLabel: "Explore auctions",
+    actionTo: "/",
+  },
+  watchlist: {
+    title: "My watchlist",
+    description: "Keep track of auctions you want to follow.",
+    emptyTitle: "Your watchlist is empty",
+    emptyDescription: "Find interesting items and add them to your watchlist.",
+    actionLabel: "Browse items",
+    actionTo: "/",
+  },
+  wins: {
+    title: "Won auctions",
+    description: "Review items you've won in completed auctions.",
+    emptyTitle: "No auction wins yet",
+    emptyDescription: "Your completed wins will appear here when available.",
+    actionLabel: "Explore auctions",
+    actionTo: "/",
+  },
+};
+
+export default function UserDashboardPage() {
+  const navigate = useNavigate();
+
+  const {
+    user,
+    activeTab,
+    setActiveTab,
+    stats,
+    myListings,
+    myBids,
+    watchlist,
+    wonAuctions,
+  } = useDashboard();
+
+  const sectionItems = {
+    listings: myListings,
+    bids: myBids,
+    watchlist,
+    wins: wonAuctions,
+  };
+
+  const section = sectionInfo[activeTab];
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Navbar
+        onSearch={() => navigate("/")}
+        onSell={() => navigate("/listings/new")}
+      />
+
+      <main className="mx-auto max-w-7xl space-y-8 px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
+        <DashboardHeader user={user} />
+
+        <DashboardStats
+          stats={stats}
+          onSelectTab={setActiveTab}
+        />
+
+        <DashboardTabs
+          activeTab={activeTab}
+          onChange={setActiveTab}
+        />
+
+        {activeTab === "overview" ? (
+          <DashboardOverview
+            myListings={myListings}
+            myBids={myBids}
+            onSelectTab={setActiveTab}
+          />
+        ) : (
+          <section className="space-y-5">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                {section.title}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {section.description}
+              </p>
+            </div>
+
+            {sectionItems[activeTab].length > 0 ? (
+              <DashboardAuctionList
+                items={sectionItems[activeTab]}
+                type={activeTab}
+              />
+            ) : (
+              <DashboardEmptyState
+                title={section.emptyTitle}
+                description={section.emptyDescription}
+                actionLabel={section.actionLabel}
+                actionTo={section.actionTo}
+              />
+            )}
+          </section>
+        )}
+      </main>
+    </div>
+  );
+}
