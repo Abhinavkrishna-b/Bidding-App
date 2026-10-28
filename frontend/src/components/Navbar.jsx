@@ -1,11 +1,8 @@
 import { useState } from "react";
-import { Gavel, Plus, Search, UserRound, X } from "lucide-react";
+import { Gavel, Plus, UserRound } from "lucide-react";
 import Button from "./Button.jsx";
 
 export default function Navbar({
-  inputRef,
-  query,
-  onQueryChange,
   onSell,
   onProfile,
 }) {
@@ -13,7 +10,7 @@ export default function Navbar({
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <nav className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
+      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <a
           href="#top"
           className="flex shrink-0 items-center gap-2.5"
@@ -27,34 +24,6 @@ export default function Navbar({
             Campus<span className="text-indigo-600">Auction</span>
           </span>
         </a>
-
-        <div className="min-w-0 flex-1">
-          <label className="relative mx-auto block max-w-md">
-            <input
-              ref={inputRef}
-              type="search"
-              value={query}
-              onChange={(event) => onQueryChange(event.target.value)}
-              placeholder="Search campus listings..."
-              aria-label="Search campus listings"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
-            />
-            {query && (
-              <button
-                type="button"
-                onClick={() => onQueryChange("")}
-                aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-              >
-                <X size={15} />
-              </button>
-            )}
-            <Search
-              size={17}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-          </label>
-        </div>
 
         <div className="flex shrink-0 items-center gap-2">
           <Button onClick={onSell} className="shrink-0">

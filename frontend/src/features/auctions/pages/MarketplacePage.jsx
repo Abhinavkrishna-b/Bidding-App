@@ -71,9 +71,6 @@ export default function MarketplacePage() {
       className="min-h-screen bg-[#F7F8FC] text-slate-900"
     >
       <Navbar
-        inputRef={searchRef}
-        query={marketplace.query}
-        onQueryChange={marketplace.setQuery}
         onSell={showSellNotice}
         onProfile={showProfileNotice}
       />
@@ -104,6 +101,9 @@ export default function MarketplacePage() {
           </div>
 
           <MarketplaceToolbar
+            query={marketplace.query}
+            setQuery={marketplace.setQuery}
+            inputRef={searchRef}
             sort={marketplace.sort}
             setSort={marketplace.setSort}
             maxPrice={marketplace.maxPrice}

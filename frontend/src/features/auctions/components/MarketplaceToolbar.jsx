@@ -1,6 +1,9 @@
-import { Clock3, SlidersHorizontal, X } from "lucide-react";
+import { Clock3, Search, SlidersHorizontal, X } from "lucide-react";
 
 export default function MarketplaceToolbar({
+  query,
+  setQuery,
+  inputRef,
   sort,
   setSort,
   maxPrice,
@@ -13,6 +16,22 @@ export default function MarketplaceToolbar({
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+      <label className="relative mb-4 block">
+        <Search
+          size={18}
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+        />
+        <input
+          ref={inputRef}
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search items, categories, sellers..."
+          aria-label="Search auctions"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
+        />
+      </label>
+
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <SlidersHorizontal size={16} />
