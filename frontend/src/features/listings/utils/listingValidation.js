@@ -67,6 +67,16 @@ export function validateListing(values, images) {
       "Enter a positive, whole-number starting price.";
   }
 
+  const increment = Number(values.minimumBidIncrement);
+  if (
+    values.minimumBidIncrement === "" ||
+    !Number.isSafeInteger(increment) ||
+    increment < 1
+  ) {
+    errors.minimumBidIncrement =
+      "Enter a positive, whole-number minimum bid increment.";
+  }
+
   if (
     !AUCTION_DURATIONS.some(
       (duration) => duration.value === values.duration

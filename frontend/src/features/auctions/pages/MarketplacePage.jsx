@@ -10,8 +10,6 @@ import AuctionGrid from "../components/AuctionGrid.jsx";
 import AuctionDetailsModal from "../components/AuctionDetailsModal.jsx";
 import NoticeToast from "../components/NoticeToast.jsx";
 
-import { mockAuctions } from "../data/mockAuctions.js";
-
 export default function MarketplacePage() {
   const marketplace = useMarketplace();
 
@@ -70,7 +68,7 @@ export default function MarketplacePage() {
       <main className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
         <MarketplaceHero
           onExplore={focusSearch}
-          totalAuctions={mockAuctions.length}
+          totalAuctions={marketplace.auctions.length}
         />
 
         <section
@@ -102,6 +100,21 @@ export default function MarketplacePage() {
             onReset={marketplace.resetFilters}
           />
 
+          {marketplace.error && (
+            <p
+              role="alert"
+              className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+            >
+              {marketplace.error}
+            </p>
+          )}
+
+          {marketplace.loading && (
+            <p role="status" className="mt-5 text-sm text-slate-500">
+              Loading campus auctions...
+            </p>
+          )}
+
           <div className="mt-5">
             <CategoryFilter
               categories={marketplace.categories}
@@ -110,20 +123,24 @@ export default function MarketplacePage() {
             />
           </div>
 
-          <FeaturedAuctions
-            auctions={marketplace.featuredAuctions}
-            savedIds={marketplace.savedIds}
-            onToggleSaved={marketplace.toggleSaved}
-            onOpen={setSelectedAuction}
-          />
+          {!marketplace.loading && (
+            <FeaturedAuctions
+              auctions={marketplace.featuredAuctions}
+              savedIds={marketplace.savedIds}
+              onToggleSaved={marketplace.toggleSaved}
+              onOpen={setSelectedAuction}
+            />
+          )}
 
-          <AuctionGrid
-            auctions={marketplace.filteredAuctions}
-            savedIds={marketplace.savedIds}
-            onToggleSaved={marketplace.toggleSaved}
-            onOpen={setSelectedAuction}
-            onReset={marketplace.resetFilters}
-          />
+          {!marketplace.loading && (
+            <AuctionGrid
+              auctions={marketplace.filteredAuctions}
+              savedIds={marketplace.savedIds}
+              onToggleSaved={marketplace.toggleSaved}
+              onOpen={setSelectedAuction}
+              onReset={marketplace.resetFilters}
+            />
+          )}
         </section>
 
         <footer className="mt-16 border-t border-slate-200 py-6 text-center text-xs text-slate-500">

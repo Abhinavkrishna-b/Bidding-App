@@ -89,7 +89,7 @@ export default function AuctionCard({
               Current bid
             </p>
             <p className="mt-0.5 text-xl font-bold text-slate-900">
-              {formatCurrency(auction.currentBid)}
+              {formatCurrency(auction.currentBid || auction.startingPrice)}
             </p>
           </div>
 

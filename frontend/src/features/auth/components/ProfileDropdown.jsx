@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   LogOut,
   Package,
+  Store,
   UserRound,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -12,6 +13,7 @@ import useAuth from "../hooks/useAuth.js";
 
 export default function ProfileDropdown() {
   const [open, setOpen] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
   const { user, isAuthenticated, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -27,10 +29,15 @@ export default function ProfileDropdown() {
     );
   }
 
-  function handleSignOut() {
-    signOut();
-    setOpen(false);
-    navigate("/", { replace: true });
+  async function handleSignOut() {
+    setSignOutError("");
+    try {
+      await signOut();
+      setOpen(false);
+      navigate("/", { replace: true });
+    } catch (error) {
+      setSignOutError(error.message || "Unable to sign out.");
+    }
   }
 
   return (
@@ -65,11 +72,16 @@ export default function ProfileDropdown() {
             <p className="mt-1 truncate text-xs text-slate-500">
               {user.email}
             </p>
-            <p className="mt-2 text-[11px] font-medium text-amber-700">
-              Demo account
+            <p className="mt-2 text-[11px] font-medium text-emerald-700">
+              Verified student
             </p>
           </div>
 
+          {signOutError && (
+            <p role="alert" className="px-3 py-2 text-xs text-red-600">
+              {signOutError}
+            </p>
+          )}
           <Link
             to="/dashboard"
             role="menuitem"
@@ -78,6 +90,16 @@ export default function ProfileDropdown() {
           >
             <LayoutDashboard size={17} className="text-slate-500" />
             Dashboard
+          </Link>
+
+          <Link
+            to="/"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50"
+          >
+            <Store size={17} className="text-slate-500" />
+            Marketplace
           </Link>
 
           <Link

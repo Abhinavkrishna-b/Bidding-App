@@ -1,16 +1,16 @@
 
 export const MINIMUM_BID_INCREMENT = 10;
 
-export function getMinimumBid(currentBid, startingPrice) {
+export function getMinimumBid(currentBid, startingPrice, increment = MINIMUM_BID_INCREMENT) {
   const current = Number(currentBid) || 0;
   const starting = Number(startingPrice) || 0;
 
-  return Math.max(current, starting) + MINIMUM_BID_INCREMENT;
+  return current > 0 ? current + Number(increment) : starting;
 }
 
-export function validateBid(amount, currentBid, startingPrice) {
+export function validateBid(amount, currentBid, startingPrice, increment) {
   const bid = Number(amount);
-  const minimumBid = getMinimumBid(currentBid, startingPrice);
+  const minimumBid = getMinimumBid(currentBid, startingPrice, increment);
 
   if (amount === "" || amount === null || amount === undefined) {
     return { valid: false, message: "Enter your bid amount." };

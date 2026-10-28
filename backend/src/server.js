@@ -1,11 +1,28 @@
 import "dotenv/config";
+import { createServer } from "node:http";
 import mongoose from "mongoose";
+import { Server as SocketServer } from "socket.io";
 import app from "./app.js";
 import connectDatabase from "./config/database.js";
 
 const port = Number(process.env.PORT || 4000);
+const httpServer = createServer(app);
+const io = new SocketServer(httpServer, {
+  cors: {
+    origin: process.env.FRONTEND_ORIGIN || "http://localhost:5173",
+    credentials: true,
+  },
+});
 let server;
 let isShuttingDown = false;
+
+io.on("connection", (socket) => {
+  socket.on("auction:join", (auctionId) => {
+    if (mongoose.isValidObjectId(auctionId)) {
+      socket.join(auctionId);
+    }
+  });
+});
 
 async function startServer() {
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -14,7 +31,8 @@ async function startServer() {
 
   await connectDatabase();
 
-  server = app.listen(port, () => {
+  app.set("io", io);
+  server = httpServer.listen(port, () => {
     console.info(`Campus Auction API listening on port ${port}.`);
   });
 
@@ -37,6 +55,7 @@ async function shutdown(signal) {
       });
     }
 
+    io.close();
     await mongoose.disconnect();
   } catch (error) {
     console.error("Graceful shutdown failed:", error.message);

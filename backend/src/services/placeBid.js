@@ -88,7 +88,6 @@ export default async function placeBid({
         const bidder = await Student.findOne({
           _id: bidderId,
           isActive: true,
-          campusVerifiedAt: { $ne: null },
         })
           .select("_id")
           .session(session)
@@ -97,7 +96,7 @@ export default async function placeBid({
         if (!bidder) {
           throw new HttpError(
             403,
-            "Only active, campus-verified students can bid."
+            "Only active students can bid."
           );
         }
 

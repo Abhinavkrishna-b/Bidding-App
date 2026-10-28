@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { apiRequest } from "../../../services/api.js";
 import {
   ALLOWED_IMAGE_TYPES,
   MAX_IMAGES,
@@ -12,26 +14,28 @@ export const initialValues = {
   condition: "",
   description: "",
   startingPrice: "",
+  minimumBidIncrement: "10",
   duration: "24",
   location: "",
 };
 
 export function useListingForm() {
+  const navigate = useNavigate();
   const [values, setValues] = useState(initialValues);
   const [images, setImages] = useState([]);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const fileInputRef = useRef(null);
   const previewUrls = useRef(new Set());
 
   useEffect(() => {
+    const urls = previewUrls.current;
     return () => {
-      previewUrls.current.forEach((url) => {
-        URL.revokeObjectURL(url);
-      });
-
-      previewUrls.current.clear();
+      urls.forEach((url) => URL.revokeObjectURL(url));
+      urls.clear();
     };
   }, []);
 
@@ -120,29 +124,42 @@ export function useListingForm() {
     setSubmitted(false);
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     const validationErrors = validateListing(values, images);
     setErrors(validationErrors);
     setSubmitted(false);
+    setSubmitError("");
 
     if (Object.keys(validationErrors).length > 0) {
       return;
     }
 
-    // Prototype only: this does not publish or save a listing.
-    console.log("Validated listing draft:", {
-      ...values,
-      title: values.title.trim(),
-      description: values.description.trim(),
-      location: values.location.trim(),
-      startingPrice: Number(values.startingPrice),
-      durationHours: Number(values.duration),
-      images: images.map(({ file }) => file),
-    });
+    const formData = new FormData();
+    formData.append("title", values.title.trim());
+    formData.append("category", values.category);
+    formData.append("condition", values.condition);
+    formData.append("description", values.description.trim());
+    formData.append("startingPrice", values.startingPrice);
+    formData.append("minimumBidIncrement", values.minimumBidIncrement);
+    formData.append("duration", values.duration);
+    formData.append("location", values.location.trim());
+    images.forEach(({ file }) => formData.append("images", file));
 
-    setSubmitted(true);
+    setSubmitting(true);
+    try {
+      const result = await apiRequest("/auctions", {
+        method: "POST",
+        body: formData,
+      });
+      setSubmitted(true);
+      navigate(`/auctions/${result.auction._id}`, { replace: true });
+    } catch (error) {
+      setSubmitError(error.message || "Unable to publish your listing.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function resetForm() {
@@ -155,6 +172,7 @@ export function useListingForm() {
     setImages([]);
     setErrors({});
     setSubmitted(false);
+    setSubmitError("");
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -166,6 +184,8 @@ export function useListingForm() {
     images,
     errors,
     submitted,
+    submitError,
+    submitting,
     fileInputRef,
     updateField,
     addImages,

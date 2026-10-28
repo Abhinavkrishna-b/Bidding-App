@@ -13,6 +13,8 @@ export default function ListingForm() {
     images,
     errors,
     submitted,
+    submitError,
+    submitting,
     fileInputRef,
     updateField,
     addImages,
@@ -35,11 +37,10 @@ export default function ListingForm() {
 
           <div>
             <p className="font-semibold text-emerald-900">
-              Your listing details are ready
+              Your auction is published
             </p>
             <p className="mt-1 text-sm leading-5 text-emerald-800">
-              This is a frontend prototype. Nothing has been published
-              or saved to the database yet.
+              Your listing has been published to the marketplace.
             </p>
           </div>
         </div>
@@ -78,8 +79,7 @@ export default function ListingForm() {
             </p>
             <p className="mt-1 text-sm leading-5 text-indigo-800">
               Check your item description, photos, and starting price.
-              Actual listing publication and auction scheduling will be
-              implemented when the backend is connected.
+              Your listing will open for bids as soon as it is published.
             </p>
           </div>
         </div>
@@ -95,10 +95,15 @@ export default function ListingForm() {
           Clear form
         </Button>
 
-        <Button type="submit">
-          Review listing details
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Publishing..." : "Publish auction"}
         </Button>
       </div>
+      {submitError && (
+        <p role="alert" className="text-sm text-red-700">
+          {submitError}
+        </p>
+      )}
     </form>
   );
 }

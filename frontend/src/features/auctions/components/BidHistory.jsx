@@ -67,8 +67,7 @@ export default function BidHistory({ bidHistory }) {
       )}
 
       <p className="mt-5 border-t border-slate-100 pt-4 text-xs leading-5 text-slate-400">
-        Demo activity only. Verified bid records will be loaded from the
-        backend when it is connected.
+        All bids are public and are recorded with the bidder and time.
       </p>
     </section>
   );

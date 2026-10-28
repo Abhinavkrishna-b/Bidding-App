@@ -32,7 +32,7 @@ export default function AuthLayout({ children, heading, subtitle }) {
           </section>
 
           <p className="mt-6 text-center text-xs leading-5 text-slate-400">
-            Campus Auction prototype · Authentication is simulated
+            Campus Auction · Student marketplace
           </p>
         </div>
       </div>

@@ -22,20 +22,18 @@ export function validateSignUp(values) {
   const name = values.name.trim();
   const email = values.email.trim();
 
-  if (name.length < 2 || name.length > 60) {
-    errors.name = "Name must contain 2–60 characters.";
+  if (name.length < 2 || name.length > 100) {
+    errors.name = "Name must contain 2–100 characters.";
   }
 
   if (!email) {
-    errors.email = "Enter your campus email address.";
+    errors.email = "Enter your email address.";
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errors.email = "Enter a valid email address.";
   }
 
-  if (values.password.length < 8) {
-    errors.password = "Password must contain at least 8 characters.";
-  } else if (!/[A-Za-z]/.test(values.password) || !/\d/.test(values.password)) {
-    errors.password = "Include at least one letter and one number.";
+  if (values.password.length < 8 || values.password.length > 128) {
+    errors.password = "Password must contain 8–128 characters.";
   }
 
   if (values.confirmPassword !== values.password) {

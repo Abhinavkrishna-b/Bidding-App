@@ -68,8 +68,7 @@ export default function CreateListingPage() {
         </div>
 
         <p className="mt-5 text-center text-xs leading-5 text-slate-500">
-          Frontend prototype · Your listing will not be published until
-          backend integration is implemented.
+          Auctions are visible to signed-in students as soon as they are published.
         </p>
       </main>
     </div>

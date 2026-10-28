@@ -1,120 +1,151 @@
-
 import { useEffect, useState } from "react";
+import { apiRequest, mapAuction } from "../../../services/api.js";
+import { connectAuctionSocket } from "../../../services/auctionSocket.js";
+import useAuth from "../../auth/hooks/useAuth.js";
 import {
   getMinimumBid,
   getTimeRemaining,
   validateBid,
 } from "../utils/biddingUtils.js";
 
-function createInitialHistory(auction) {
-  const currentBid = Number(auction.currentBid) || 0;
-  const startingPrice = Number(auction.startingPrice) || 0;
-
-  if (currentBid <= 0) return [];
-
-  if (currentBid === startingPrice) {
-    return [
-      {
-        id: "initial-bid",
-        bidder: "Campus bidder",
-        amount: currentBid,
-        time: "Starting price",
-      },
-    ];
-  }
-
-  return [
-    {
-      id: "latest-demo-bid",
-      bidder: "Campus bidder",
-      amount: currentBid,
-      time: "Latest recorded bid",
-    },
-    {
-      id: "starting-demo-bid",
-      bidder: "Campus bidder",
-      amount: startingPrice,
-      time: "Opening price",
-    },
-  ];
+function mapBid(bid) {
+  return {
+    id: bid._id || bid.id,
+    bidder:
+      typeof bid.bidder === "object" ? bid.bidder?.name || "Student" : bid.bidder,
+    amount: bid.amount,
+    time: new Date(bid.placedAt).toLocaleString(),
+  };
 }
 
-export default function useAuctionDetails(auction) {
-  const [currentBid, setCurrentBid] = useState(
-    () => Number(auction?.currentBid) || 0
-  );
+function addBid(history, bid) {
+  if (history.some((existing) => existing.id === bid.id)) return history;
+  return [mapBid(bid), ...history];
+}
 
-  const [bidHistory, setBidHistory] = useState(() =>
-    auction ? createInitialHistory(auction) : []
-  );
-
+export default function useAuctionDetails(auctionId) {
+  const { user } = useAuth();
+  const [auction, setAuction] = useState(null);
+  const [bidHistory, setBidHistory] = useState([]);
   const [bidAmount, setBidAmount] = useState("");
   const [bidError, setBidError] = useState("");
   const [notice, setNotice] = useState("");
-
-  // Pure initial value: no Date.now() during render.
+  const [error, setError] = useState("");
+  const [loadedAuctionId, setLoadedAuctionId] = useState("");
   const [now, setNow] = useState(0);
 
   useEffect(() => {
-    const updateClock = () => {
-      setNow(Date.now());
+    let active = true;
+
+    Promise.all([
+      apiRequest(`/auctions/${auctionId}`),
+      apiRequest(`/auctions/${auctionId}/bids`),
+    ])
+      .then(([auctionResult, bidResult]) => {
+        if (!active) return;
+        setAuction(mapAuction(auctionResult.auction));
+        setBidHistory(bidResult.bids.map(mapBid));
+        setError("");
+      })
+      .catch((requestError) => {
+        if (active) {
+          setError(requestError.message || "Unable to load this auction.");
+        }
+      })
+      .finally(() => {
+        if (active) setLoadedAuctionId(auctionId);
+      });
+
+    return () => {
+      active = false;
     };
+  }, [auctionId]);
 
+  useEffect(() => {
+    const socket = connectAuctionSocket();
+    socket.emit("auction:join", auctionId);
+    socket.on("bid:placed", (event) => {
+      setAuction((current) =>
+        current
+          ? {
+              ...current,
+              currentBid: event.auction.currentBid,
+              bidCount: event.auction.bidCount,
+            }
+          : current
+      );
+      setBidHistory((current) => addBid(current, event.bid));
+    });
+
+    return () => socket.disconnect();
+  }, [auctionId]);
+
+  useEffect(() => {
+    const updateClock = () => setNow(Date.now());
     updateClock();
-
     const intervalId = window.setInterval(updateClock, 1000);
-
     return () => window.clearInterval(intervalId);
   }, []);
 
-  const minimumBid = getMinimumBid(
-    currentBid,
-    auction?.startingPrice
-  );
-
+  const currentBid = auction?.currentBid ?? 0;
+  const minimumBid = auction
+    ? getMinimumBid(
+        auction.bidCount === 0 ? 0 : currentBid,
+        auction.startingPrice,
+        auction.minimumBidIncrement
+      )
+    : 0;
   const timeRemaining = getTimeRemaining(auction?.endsAt, now);
-  const isEnded = timeRemaining?.ended ?? false;
+  const isEnded =
+    !auction ||
+    auction.status !== "active" ||
+    (timeRemaining?.ended ?? false);
+  const isOwnAuction =
+    Boolean(user && auction?.sellerId) &&
+    String(user.id) === String(auction.sellerId);
 
-  function placeBid(event) {
+  async function placeBid(event) {
     event.preventDefault();
     setNotice("");
+    setBidError("");
 
-    if (isEnded) {
-      setBidError("This auction has ended. Bidding is closed.");
+    if (!user) {
+      setBidError("Sign in to place a bid.");
       return;
     }
 
     const result = validateBid(
       bidAmount,
-      currentBid,
-      auction?.startingPrice
+      auction?.bidCount === 0 ? 0 : currentBid,
+      auction?.startingPrice,
+      auction?.minimumBidIncrement
     );
-
     if (!result.valid) {
       setBidError(result.message);
       return;
     }
 
-    const newBid = Number(bidAmount);
+    try {
+      const response = await apiRequest(`/auctions/${auction.id}/bids`, {
+        method: "POST",
+        body: { amount: Number(bidAmount), requestId: crypto.randomUUID() },
+      });
 
-    setCurrentBid(newBid);
-
-    setBidHistory((previous) => [
-      {
-        id: `demo-${Date.now()}`,
-        bidder: "You (demo)",
-        amount: newBid,
-        time: "Just now",
-      },
-      ...previous,
-    ]);
-
-    setBidAmount("");
-    setBidError("");
-
-    setNotice(
-      "Demo bid accepted for this session. It has not been saved to a server."
-    );
+      setAuction((current) =>
+        current
+          ? {
+              ...current,
+              currentBid: response.auction.currentBid,
+              bidCount: response.auction.bidCount,
+            }
+          : current
+      );
+      setBidHistory((current) => addBid(current, response.bid));
+      setBidAmount("");
+      setNotice("Your bid was placed.");
+    } catch (requestError) {
+      setBidError(requestError.message || "Unable to place your bid.");
+    }
   }
 
   function updateBidAmount(value) {
@@ -124,6 +155,9 @@ export default function useAuctionDetails(auction) {
   }
 
   return {
+    auction,
+    loading: loadedAuctionId !== auctionId,
+    error,
     currentBid,
     bidHistory,
     bidAmount,
@@ -132,6 +166,8 @@ export default function useAuctionDetails(auction) {
     minimumBid,
     timeRemaining,
     isEnded,
+    isOwnAuction,
+    requiresSignIn: !user,
     placeBid,
     updateBidAmount,
   };

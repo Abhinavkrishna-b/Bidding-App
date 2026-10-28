@@ -10,6 +10,7 @@ import DashboardEmptyState from "../components/DashboardEmptyState.jsx";
 import BuyerBidCard from "../components/BuyerBidCard.jsx";
 import useDashboard from "../hooks/useDashboard.js";
 import useBuyerActivity from "../hooks/useBuyerActivity.js";
+import useAuth from "../../auth/hooks/useAuth.js";
 
 const sectionInfo = {
   listings: {
@@ -65,6 +66,7 @@ export default function UserDashboardPage() {
   } = useDashboard();
 
   const buyerActivity = useBuyerActivity();
+  const { user: signedInUser } = useAuth();
 
   const sectionItems = {
     listings: myListings,
@@ -83,7 +85,7 @@ export default function UserDashboardPage() {
       />
 
       <main className="mx-auto max-w-7xl space-y-8 px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
-        <DashboardHeader user={user} />
+        <DashboardHeader user={signedInUser || user} />
 
         <DashboardStats
           stats={stats}

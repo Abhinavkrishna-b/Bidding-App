@@ -1,5 +1,6 @@
 
 import { Gavel, ShieldCheck, TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
 import { formatCurrency } from "../utils/biddingUtils.js";
 import AuctionStatus from "./AuctionStatus.jsx";
 
@@ -12,6 +13,8 @@ export default function BiddingPanel({
   minimumBid,
   timeRemaining,
   isEnded,
+  isOwnAuction,
+  requiresSignIn,
   onBidAmountChange,
   onPlaceBid,
 }) {
@@ -57,13 +60,24 @@ export default function BiddingPanel({
           value={bidAmount}
           onChange={(event) => onBidAmountChange(event.target.value)}
           placeholder={`Minimum ₹${minimumBid.toLocaleString("en-IN")}`}
-          disabled={isEnded}
+          disabled={isEnded || isOwnAuction}
           aria-invalid={Boolean(bidError)}
           aria-describedby={bidError ? "bid-error" : "bid-hint"}
           className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100"
         />
 
-        {bidError ? (
+        {isOwnAuction ? (
+          <p className="mt-2 text-sm text-slate-500">
+            You cannot bid on your own listing.
+          </p>
+        ) : requiresSignIn ? (
+          <Link
+            to="/signin"
+            className="mt-2 inline-flex text-sm font-semibold text-indigo-700 hover:text-indigo-800"
+          >
+            Sign in to place a bid
+          </Link>
+        ) : bidError ? (
           <p id="bid-error" role="alert" className="mt-2 text-sm text-red-600">
             {bidError}
           </p>
@@ -75,11 +89,15 @@ export default function BiddingPanel({
 
         <button
           type="submit"
-          disabled={isEnded}
+          disabled={isEnded || isOwnAuction}
           className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
           <Gavel size={18} />
-          {isEnded ? "Bidding closed" : "Place bid"}
+          {isEnded
+            ? "Bidding closed"
+            : isOwnAuction
+              ? "Your listing"
+              : "Place bid"}
         </button>
       </form>
 
@@ -95,8 +113,8 @@ export default function BiddingPanel({
       <div className="mt-5 flex items-start gap-2 border-t border-slate-100 pt-4 text-xs leading-5 text-slate-500">
         <ShieldCheck size={16} className="mt-0.5 shrink-0 text-slate-400" />
         <p>
-          Prototype mode: bids are simulated in your current session.
-          No payment is collected, and no bid is saved to the server.
+          Your bid is recorded publicly. The seller arranges pickup after the
+          auction closes.
         </p>
       </div>
     </aside>

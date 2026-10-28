@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Clock3, Gavel, MapPin, UserRound, X } from "lucide-react";
 import Button from "../../../components/Button.jsx";
+import { useNavigate } from "react-router-dom";
 import {
   formatCurrency,
   formatDate,
@@ -13,6 +14,7 @@ export default function AuctionDetailsModal({
   onClose,
   onNotice,
 }) {
+  const navigate = useNavigate();
   const [ended, setEnded] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
 
@@ -115,7 +117,7 @@ export default function AuctionDetailsModal({
               </p>
 
               <p className="mt-1 text-3xl font-bold text-slate-900">
-                {formatCurrency(auction.currentBid)}
+                {formatCurrency(auction.currentBid || auction.startingPrice)}
               </p>
 
               <p className="mt-1 text-xs text-slate-500">
@@ -175,22 +177,18 @@ export default function AuctionDetailsModal({
             <Button
               disabled={ended}
               onClick={() => {
-                onNotice(
-                  ended
-                    ? "This auction has ended."
-                    : "Bidding will be enabled when the bidding module is connected."
-                );
+                if (ended) {
+                  onNotice("This auction has ended.");
+                  return;
+                }
+                navigate(`/auctions/${auction.id}`);
                 onClose();
               }}
               className="mt-6 w-full"
             >
               <Gavel size={17} />
-              {ended ? "Auction ended" : "Place a bid"}
+              {ended ? "Auction ended" : "View details and bid"}
             </Button>
-
-            <p className="mt-3 text-center text-xs leading-5 text-slate-400">
-              Demo mode: bids are not submitted or saved yet.
-            </p>
           </div>
         </div>
       </section>

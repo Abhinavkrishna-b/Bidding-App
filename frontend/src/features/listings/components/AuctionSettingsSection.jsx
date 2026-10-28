@@ -48,6 +48,33 @@ export default function AuctionSettingsSection({
         </FormField>
 
         <FormField
+          label="Minimum bid increment"
+          htmlFor="minimumBidIncrement"
+          required
+          error={errors.minimumBidIncrement}
+          hint="The minimum increase required after each bid."
+        >
+          <div className="relative">
+            <IndianRupee
+              size={17}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              id="minimumBidIncrement"
+              name="minimumBidIncrement"
+              type="number"
+              min="1"
+              step="1"
+              value={values.minimumBidIncrement}
+              onChange={onChange}
+              placeholder="e.g. 10"
+              className={`${fieldClass} pl-10`}
+              aria-invalid={Boolean(errors.minimumBidIncrement)}
+            />
+          </div>
+        </FormField>
+
+        <FormField
           label="Auction duration"
           htmlFor="duration"
           required

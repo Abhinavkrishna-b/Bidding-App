@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, LogIn } from "lucide-react";
 import AuthLayout from "../components/AuthLayout.jsx";
@@ -11,7 +11,7 @@ import { validateSignIn } from "../utils/authValidation.js";
 export default function SignInPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, isAuthenticated } = useAuth();
+  const { signIn, isAuthenticated, isLoading } = useAuth();
 
   const [values, setValues] = useState({
     email: "",
@@ -22,9 +22,11 @@ export default function SignInPage() {
   const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (isAuthenticated) {
-    navigate("/dashboard", { replace: true });
-  }
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   function updateField(event) {
     const { name, value } = event.target;
@@ -69,7 +71,7 @@ export default function SignInPage() {
           type="email"
           value={values.email}
           onChange={updateField}
-          placeholder="you@campus.edu"
+          placeholder="you@example.com"
           autoComplete="email"
           error={errors.email}
         />
@@ -101,9 +103,6 @@ export default function SignInPage() {
           {!loading && <ArrowRight size={16} />}
         </button>
 
-        <p className="text-center text-xs leading-5 text-slate-500">
-          Demo mode: any non-empty password is accepted after validation.
-        </p>
       </form>
 
       <div className="mt-6 border-t border-slate-100 pt-5 text-center">

@@ -29,7 +29,7 @@ export default function App() {
           <Route path="/signin" element={<SignInPage />} />
           <Route path="/signup" element={<SignUpPage />} />
 
-          {/* Pages requiring a signed-in demo session */}
+          {/* Pages requiring a signed-in account */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<UserDashboardPage />} />
             <Route path="/listings/new" element={<CreateListingPage />} />

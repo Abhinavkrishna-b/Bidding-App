@@ -1,5 +1,5 @@
 
-import { Gavel, Plus } from "lucide-react";
+import { Gavel, Plus, Store } from "lucide-react";
 import { Link } from "react-router-dom";
 import NotificationBell from "../features/notifications/components/NotificationBell.jsx";
 import ProfileDropdown from "../features/auth/components/ProfileDropdown.jsx";
@@ -25,6 +25,14 @@ export default function Navbar() {
 
         {/* Navbar actions */}
         <div className="flex shrink-0 items-center gap-2">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-indigo-700"
+          >
+            <Store size={17} />
+            <span className="hidden sm:inline">Marketplace</span>
+          </Link>
+
           {/* Sell an item */}
           <Link
             to="/listings/new"

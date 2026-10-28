@@ -1,5 +1,5 @@
 
-import { ArrowUpRight, List, Plus } from "lucide-react";
+import { ArrowUpRight, List, Plus, Store } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function DashboardHeader({ user }) {
@@ -22,6 +22,14 @@ export default function DashboardHeader({ user }) {
       </div>
 
       <div className="flex flex-wrap gap-3">
+        <Link
+          to="/"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200"
+        >
+          <Store size={18} />
+          Marketplace
+        </Link>
+
         <Link
           to="/my-listings"
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200"

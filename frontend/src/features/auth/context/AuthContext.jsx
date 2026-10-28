@@ -1,82 +1,96 @@
 
 import {
-  createContext,
   useCallback,
-  useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
-
-const AuthContext = createContext(null);
+import { apiRequest } from "../../../services/api.js";
+import AuthContext from "./authContext.js";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
+
+  const refreshUser = useCallback(async () => {
+    setIsLoading(true);
+    setAuthError("");
+
+    try {
+      const result = await apiRequest("/auth/me");
+      setUser(result.user);
+      return result.user;
+    } catch (error) {
+      setAuthError(error.message);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    apiRequest("/auth/me")
+      .then((result) => {
+        if (active) setUser(result.user);
+      })
+      .catch((error) => {
+        if (active) setAuthError(error.message);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const signIn = useCallback(async ({ email, password }) => {
-    if (!email.trim() || !password) {
-      throw new Error("Enter your email and password.");
-    }
+    const result = await apiRequest("/auth/signin", {
+      method: "POST",
+      body: { email, password },
+    });
 
-    // Prototype only: no real credentials are verified.
-    const nameFromEmail = email
-      .split("@")[0]
-      .replace(/[._-]+/g, " ")
-      .replace(/\b\w/g, (character) => character.toUpperCase());
-
-    const demoUser = {
-      name: nameFromEmail || "Campus Student",
-      email: email.trim(),
-      initials: nameFromEmail.charAt(0).toUpperCase() || "S",
-    };
-
-    setUser(demoUser);
-    return demoUser;
+    setUser(result.user);
+    setAuthError("");
+    return result.user;
   }, []);
 
-  const signUp = useCallback(async ({ name, email, password }) => {
-    if (!name.trim() || !email.trim() || !password) {
-      throw new Error("Complete all required fields.");
-    }
-
-    // Prototype only: does not create a real account.
-    const demoUser = {
-      name: name.trim(),
-      email: email.trim(),
-      initials: name.trim().charAt(0).toUpperCase(),
-    };
-
-    setUser(demoUser);
-    return demoUser;
+  const signUp = useCallback(({ name, email, password }) => {
+    return apiRequest("/auth/signup", {
+      method: "POST",
+      body: { name, email, password },
+    }).then((result) => {
+      setUser(result.user);
+      setAuthError("");
+      return result.user;
+    });
   }, []);
 
-  const signOut = useCallback(() => {
+  const signOut = useCallback(async () => {
+    await apiRequest("/auth/signout", { method: "POST" });
     setUser(null);
+    setAuthError("");
   }, []);
 
   const value = useMemo(
     () => ({
       user,
       isAuthenticated: Boolean(user),
+      isLoading,
+      authError,
       signIn,
       signUp,
       signOut,
+      refreshUser,
     }),
-    [user, signIn, signUp, signOut]
+    [user, isLoading, authError, signIn, signUp, signOut, refreshUser]
   );
 
   return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
   );
-}
-
-export function useAuthContext() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuthContext must be used inside AuthProvider.");
-  }
-
-  return context;
 }

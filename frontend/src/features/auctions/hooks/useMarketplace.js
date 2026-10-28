@@ -1,8 +1,12 @@
-
-import { useEffect, useMemo, useState } from "react";
-import { mockAuctions, categories } from "../data/mockAuctions.js";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { apiRequest, mapAuction } from "../../../services/api.js";
+import { connectAuctionSocket } from "../../../services/auctionSocket.js";
+import { categories } from "../data/mockAuctions.js";
 
 export function useMarketplace() {
+  const [auctions, setAuctions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [now, setNow] = useState(null);
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Items");
@@ -12,10 +16,32 @@ export function useMarketplace() {
   const [maxPrice, setMaxPrice] = useState("all");
   const [savedIds, setSavedIds] = useState([]);
 
+  const loadAuctions = useCallback(async () => {
+    try {
+      const result = await apiRequest("/auctions");
+      setAuctions(result.auctions.map(mapAuction));
+      setError("");
+    } catch (requestError) {
+      setError(requestError.message || "Unable to load marketplace listings.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadAuctions);
+    const socket = connectAuctionSocket();
+    socket.on("auction:updated", loadAuctions);
+
+    return () => {
+      socket.off("auction:updated", loadAuctions);
+      socket.disconnect();
+    };
+  }, [loadAuctions]);
+
   useEffect(() => {
     const updateTime = () => setNow(Date.now());
     updateTime();
-
     const intervalId = setInterval(updateTime, 60_000);
     return () => clearInterval(intervalId);
   }, []);
@@ -24,7 +50,7 @@ export function useMarketplace() {
     const normalizedQuery = query.trim().toLowerCase();
     const endingSoonCutoff = now === null ? null : now + 24 * 60 * 60 * 1000;
 
-    const results = mockAuctions.filter((auction) => {
+    const results = auctions.filter((auction) => {
       const searchableText = [
         auction.title,
         auction.category,
@@ -38,17 +64,13 @@ export function useMarketplace() {
 
       const matchesQuery =
         !normalizedQuery || searchableText.includes(normalizedQuery);
-
       const matchesCategory =
         selectedCategory === "All Items" ||
         auction.category === selectedCategory;
-
       const matchesCondition =
         condition === "All conditions" || auction.condition === condition;
-
       const matchesPrice =
         maxPrice === "all" || auction.currentBid <= Number(maxPrice);
-
       const closingTime = new Date(auction.endsAt).getTime();
       const matchesClosingTime =
         !endingSoon ||
@@ -69,27 +91,27 @@ export function useMarketplace() {
       switch (sort) {
         case "price-low":
           return a.currentBid - b.currentBid;
-
         case "price-high":
           return b.currentBid - a.currentBid;
-
         case "most-bids":
           return b.bidCount - a.bidCount;
-
         case "ending":
           return new Date(a.endsAt) - new Date(b.endsAt);
-
         case "newest":
         default:
-          // Your current mock data doesn't contain createdAt.
-          // Use the original array order as the fallback.
-          return (
-            mockAuctions.findIndex((item) => item.id === a.id) -
-            mockAuctions.findIndex((item) => item.id === b.id)
-          );
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
       }
     });
-  }, [query, selectedCategory, condition, endingSoon, maxPrice, sort, now]);
+  }, [
+    auctions,
+    query,
+    selectedCategory,
+    condition,
+    endingSoon,
+    maxPrice,
+    sort,
+    now,
+  ]);
 
   const featuredAuctions = useMemo(
     () => filteredAuctions.filter((auction) => auction.featured),
@@ -114,6 +136,9 @@ export function useMarketplace() {
   }
 
   return {
+    auctions,
+    loading,
+    error,
     query,
     setQuery,
     categories,

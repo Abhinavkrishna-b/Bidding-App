@@ -30,10 +30,6 @@ const studentSchema = new mongoose.Schema(
       required: true,
       select: false,
     },
-    campusVerifiedAt: {
-      type: Date,
-      default: null,
-    },
     profileImageUrl: {
       type: String,
       trim: true,
