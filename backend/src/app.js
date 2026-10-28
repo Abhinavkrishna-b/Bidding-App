@@ -6,8 +6,7 @@ import notFound from "./middleware/notFound.js";
 import authRoutes from "./routes/authRoutes.js";
 import auctionRoutes from "./routes/auctionRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { uploadsDirectory } from "./utils/imageStorage.js";
 
 const app = express();
 
@@ -21,10 +20,6 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 
-const uploadsDirectory = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../uploads"
-);
 app.use("/uploads", express.static(uploadsDirectory));
 app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
