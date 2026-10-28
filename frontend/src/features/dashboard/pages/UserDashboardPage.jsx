@@ -42,10 +42,10 @@ const sectionInfo = {
   },
   wins: {
     title: "Won auctions",
-    description: "Review items you've won in completed auctions.",
+    description: "Review auctions where the seller approved your winning bid.",
     emptyTitle: "No auction wins yet",
     emptyDescription:
-      "Your completed wins will appear here when available.",
+      "Approved winning bids will appear here when available.",
     actionLabel: "Explore auctions",
     actionTo: "/",
   },
@@ -68,8 +68,8 @@ export default function UserDashboardPage() {
     wonAuctions,
   } = useDashboard();
 
-  const buyerActivity = useBuyerActivity();
   const { user: signedInUser } = useAuth();
+  const buyerActivity = useBuyerActivity(myBids);
 
   const sectionItems = {
     listings: myListings,
@@ -140,20 +140,41 @@ export default function UserDashboardPage() {
                   Try again
                 </button>
               </div>
+            ) : listingsLoading ? (
+              <p
+                role="status"
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-14 text-center text-sm text-slate-500"
+              >
+                Loading your account activity...
+              </p>
+            ) : listingsError ? (
+              <div
+                role="alert"
+                className="rounded-2xl border border-red-200 bg-red-50 px-5 py-8 text-center text-sm text-red-800"
+              >
+                <p>{listingsError}</p>
+                <button
+                  type="button"
+                  onClick={reloadListings}
+                  className="mt-3 font-semibold underline underline-offset-2"
+                >
+                  Try again
+                </button>
+              </div>
             ) : activeTab === "bids" ? (
-              buyerActivity.activeBids.length > 0 ? (
+              myBids.length > 0 ? (
                 <div className="space-y-3">
-                  {buyerActivity.activeBids.map((bid) => (
+                  {myBids.map((bid) => (
                     <BuyerBidCard
-                      key={bid.id}
+                      key={bid.auctionId}
                       bid={bid}
                     />
                   ))}
                 </div>
               ) : (
                 <DashboardEmptyState
-                  title="No active bids"
-                  description="Your active bidding activity will appear here."
+                  title="No bids yet"
+                  description="Your bidding activity will appear here after you place a bid."
                   actionLabel="Explore auctions"
                   actionTo="/"
                 />

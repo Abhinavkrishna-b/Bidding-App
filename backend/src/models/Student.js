@@ -35,6 +35,15 @@ const studentSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    watchlist: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Auction",
+        },
+      ],
+      default: [],
+    },
     isActive: {
       type: Boolean,
       default: true,

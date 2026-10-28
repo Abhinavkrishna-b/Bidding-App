@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiRequest, mapAuction } from "../../../services/api.js";
 import { connectAuctionSocket } from "../../../services/auctionSocket.js";
+import useAuth from "../../auth/hooks/useAuth.js";
 import { categories } from "../data/mockAuctions.js";
 
 export function useMarketplace() {
+  const { user, isLoading: authLoading } = useAuth();
+  const userId = user?.id;
   const [auctions, setAuctions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -14,7 +17,12 @@ export function useMarketplace() {
   const [endingSoon, setEndingSoon] = useState(false);
   const [sort, setSort] = useState("ending");
   const [maxPrice, setMaxPrice] = useState("all");
-  const [savedIds, setSavedIds] = useState([]);
+  const [savedWatchlist, setSavedWatchlist] = useState({
+    userId: "",
+    ids: [],
+  });
+  const savedIds =
+    savedWatchlist.userId === userId ? savedWatchlist.ids : [];
 
   const loadAuctions = useCallback(async () => {
     try {
@@ -38,6 +46,33 @@ export function useMarketplace() {
       socket.disconnect();
     };
   }, [loadAuctions]);
+
+  useEffect(() => {
+    let active = true;
+    if (authLoading) return undefined;
+    if (!userId) return undefined;
+
+    apiRequest("/dashboard")
+      .then(({ dashboard }) => {
+        if (active) {
+          setSavedWatchlist({
+            userId,
+            ids: dashboard.watchlist.map((auction) => auction._id),
+          });
+        }
+      })
+      .catch((requestError) => {
+        if (active) {
+          setError(
+            requestError.message || "Unable to load your saved auctions."
+          );
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [authLoading, userId]);
 
   useEffect(() => {
     const updateTime = () => setNow(Date.now());
@@ -118,12 +153,42 @@ export function useMarketplace() {
     [filteredAuctions]
   );
 
-  function toggleSaved(auctionId) {
-    setSavedIds((currentIds) =>
-      currentIds.includes(auctionId)
-        ? currentIds.filter((id) => id !== auctionId)
-        : [...currentIds, auctionId]
-    );
+  async function toggleSaved(auctionId) {
+    if (!userId) {
+      setError("Sign in to save auctions to your watchlist.");
+      return;
+    }
+
+    const saved = savedIds.includes(auctionId);
+    setSavedWatchlist((current) => {
+      const currentIds =
+        current.userId === userId ? current.ids : [];
+      return {
+        userId,
+        ids: saved
+          ? currentIds.filter((id) => id !== auctionId)
+          : [...currentIds, auctionId],
+      };
+    });
+
+    try {
+      await apiRequest(`/dashboard/watchlist/${auctionId}`, {
+        method: saved ? "DELETE" : "POST",
+      });
+      setError("");
+    } catch (requestError) {
+      setSavedWatchlist((current) => {
+        if (current.userId !== userId) return current;
+        const currentlySaved = current.ids.includes(auctionId);
+        const ids = saved
+          ? currentlySaved
+            ? current.ids
+            : [...current.ids, auctionId]
+          : current.ids.filter((id) => id !== auctionId);
+        return { ...current, ids };
+      });
+      setError(requestError.message || "Unable to update your watchlist.");
+    }
   }
 
   function resetFilters() {

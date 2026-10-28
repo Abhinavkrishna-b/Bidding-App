@@ -30,11 +30,31 @@ function formatTimeRemaining(endsAt) {
 const statusStyles = {
   leading: "bg-emerald-50 text-emerald-700",
   outbid: "bg-amber-50 text-amber-700",
+  won: "bg-emerald-50 text-emerald-700",
+  reserved: "bg-indigo-50 text-indigo-700",
+  sold: "bg-indigo-50 text-indigo-700",
+  failed_pickup: "bg-amber-50 text-amber-700",
+  rejected: "bg-red-50 text-red-700",
+  unsold: "bg-slate-100 text-slate-600",
+  cancelled: "bg-slate-100 text-slate-600",
+  awaiting_seller_decision: "bg-violet-50 text-violet-700",
 };
 
 export default function BuyerBidCard({ bid }) {
   const isOutbid = bid.status === "outbid";
-  const statusLabel = isOutbid ? "You've been outbid" : "You're leading";
+  const statusLabels = {
+    leading: "You're leading",
+    outbid: "You've been outbid",
+    won: "You won",
+    reserved: "Winner confirmed",
+    sold: "Sale completed",
+    failed_pickup: "Pickup failed",
+    rejected: "Bid rejected",
+    unsold: "Unsold",
+    cancelled: "Cancelled",
+    awaiting_seller_decision: "Awaiting seller decision",
+  };
+  const statusLabel = statusLabels[bid.status] || bid.status;
 
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-sm sm:p-5">

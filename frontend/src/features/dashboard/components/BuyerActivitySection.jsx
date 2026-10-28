@@ -64,7 +64,7 @@ export default function BuyerActivitySection({
         <SummaryCard
           label="Active bids"
           value={activeBids.length}
-          description="Auctions you're participating in"
+          description="Active auctions you're bidding on"
           Icon={Gavel}
           tone="indigo"
         />
@@ -72,7 +72,7 @@ export default function BuyerActivitySection({
         <SummaryCard
           label="You're leading"
           value={leadingCount}
-          description="Your bid is currently highest in the demo data"
+          description="Your bid is currently the highest"
           Icon={TrendingUp}
           tone="emerald"
         />

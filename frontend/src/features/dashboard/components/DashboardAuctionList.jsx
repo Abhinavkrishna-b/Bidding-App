@@ -7,24 +7,41 @@ function getStatus(item, type) {
   if (type === "listings") return item.dashboardStatus;
   if (type === "bids") {
     return item.status === "leading"
-      ? "Leading (demo)"
+      ? "Leading"
       : item.status === "outbid"
-        ? "Outbid (demo)"
+        ? "Outbid"
         : item.status;
   }
-  if (type === "wins") return "Won (demo)";
-  if (type === "watchlist") return "Watching (demo)";
+  if (type === "wins") {
+    return {
+      reserved: "Winner confirmed",
+      sold: "Sale completed",
+      failed_pickup: "Pickup failed",
+    }[item.status] || "Won";
+  }
+  if (type === "watchlist") return "Watching";
 
   return "Available";
 }
 
 function statusStyles(status) {
-  if (status.startsWith("Leading") || status.startsWith("Won")) {
+  if (
+    status.startsWith("Leading") ||
+    status.startsWith("Won") ||
+    status === "Winner confirmed" ||
+    status === "Sale completed"
+  ) {
     return "bg-emerald-50 text-emerald-700";
   }
 
   if (status.startsWith("Outbid")) {
     return "bg-amber-50 text-amber-700";
+  }
+  if (status === "Pickup failed") {
+    return "bg-amber-50 text-amber-700";
+  }
+  if (status === "Rejected" || status === "Cancelled") {
+    return "bg-red-50 text-red-700";
   }
 
   if (status === "Active" || status.startsWith("Watching")) {
